@@ -93,12 +93,16 @@ jobs:
           ref: ${{ github.event.inputs.ref }}
           path: blst
 
+      - name: Set up compiler
+        run: sudo apt-get update && sudo apt-get install -y gcc-12-aarch64-linux-gnu
+
       - name: Build
         working-directory: blst
         shell: pwsh
         run: |
           mkdir bin && cd bin
-          ..\build.bat -shared
+          ..\build.sh -shared
+          ls
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
