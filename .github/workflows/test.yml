@@ -93,9 +93,6 @@ jobs:
           ref: ${{ github.event.inputs.ref }}
           path: blst
 
-      - name: Set up compiler
-        run: sudo apt-get update && sudo apt-get install -y gcc-12-aarch64-linux-gnu
-
       - name: Build
         working-directory: blst
         shell: pwsh
