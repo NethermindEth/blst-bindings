@@ -48,7 +48,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-${{ matrix.arch }}
-          path: blst/bin/libblst.so
+          path: blst/bin/libblst.dll.so
           retention-days: ${{ env.RETENTION }}
           if-no-files-found: error
 
@@ -78,7 +78,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: osx-${{ env.ARCH }}
-          path: blst/bin/libblst.dylib
+          path: blst/bin/libblst.dll.dylib
           retention-days: ${{ env.RETENTION }}
           if-no-files-found: error
 
