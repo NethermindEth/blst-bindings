@@ -93,17 +93,20 @@ jobs:
           ref: ${{ github.event.inputs.ref }}
           path: blst
 
+      - name: Set up PATH
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Build
         working-directory: blst
         shell: pwsh
         run: |
           mkdir bin && cd bin
-          ..\build.sh -shared
+          ..\build.bat -shared
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: win-x64
-          path: blst/bin/libblst.dll
+          path: blst/bin/blst.dll
           retention-days: ${{ env.RETENTION }}
           if-no-files-found: error
 
