@@ -142,19 +142,18 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
 
-      - name: Install dependencies
-        working-directory: src
-        run: dotnet restore
-
       - name: Build
         working-directory: src/Nethermind.Crypto.Bls
-        run:
+        run: |
+          dotnet restore
           dotnet build -c ${{ env.BUILD_CONFIG }} --no-restore
           dotnet pack -c ${{ env.BUILD_CONFIG }} --no-build
 
       - name: Test
         working-directory: src/Nethermind.Crypto.Bls.Test
-        run: dotnet test -c ${{ env.BUILD_CONFIG }} --no-restore
+        run: |
+          dotnet restore
+          dotnet test -c ${{ env.BUILD_CONFIG }} --no-restore
 
       - name: Publish
         if: ${{ inputs.publish }}
