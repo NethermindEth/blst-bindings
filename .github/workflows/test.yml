@@ -140,14 +140,12 @@ jobs:
       - name: Build
         working-directory: src/Nethermind.Crypto.Bls
         run: |
-          dotnet restore
-          dotnet build -c ${{ env.BUILD_CONFIG }} --no-restore
+          dotnet build -c ${{ env.BUILD_CONFIG }}
           dotnet pack -c ${{ env.BUILD_CONFIG }} --no-build
 
       - name: Test
         working-directory: src/Nethermind.Crypto.Test
         run: |
-          dotnet restore
           dotnet test -c ${{ env.BUILD_CONFIG }} --no-restore
 
       - name: Publish
