@@ -145,7 +145,7 @@ jobs:
           dotnet pack -c ${{ env.BUILD_CONFIG }} --no-build
 
       - name: Test
-        working-directory: src/Nethermind.Crypto.Bls.Test
+        working-directory: src/Nethermind.Crypto.Test
         run: |
           dotnet restore
           dotnet test -c ${{ env.BUILD_CONFIG }} --no-restore
