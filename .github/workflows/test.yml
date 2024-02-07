@@ -101,7 +101,7 @@ jobs:
         shell: pwsh
         run: |
           mkdir bin && cd bin
-          ..\build.bat -dll
+          ..\build.bat -shared
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
