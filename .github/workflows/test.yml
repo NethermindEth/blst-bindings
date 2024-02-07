@@ -1,0 +1,155 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        default: master
+        description: blst version
+        required: false
+      publish:
+        default: false
+        description: Publish package
+        required: false
+        type: boolean
+
+env:
+  RETENTION: 2
+
+jobs:
+  build-linux:
+    name: Linux build
+    strategy:
+      matrix:
+        arch: [arm64, x64]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out blst repository
+        uses: actions/checkout@v4
+        with:
+          repository: supranational/blst
+          ref: ${{ github.event.inputs.ref }}
+          path: blst
+
+      - name: Set up GNU C compiler for arm64
+        if: matrix.arch == 'arm64'
+        run: sudo apt-get update && sudo apt-get install -y gcc-12-aarch64-linux-gnu
+
+      - name: Build
+        working-directory: blst
+        run: |
+          mkdir bin && cd bin
+          ../build.sh -shared
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          path: blst/bin/libblst.so
+          retention-days: ${{ env.RETENTION }}
+          if-no-files-found: error
+
+  build-macos:
+    name: macOS build
+    strategy:
+      matrix:
+        arch: [arm64, x86_64]
+    runs-on: macos-latest
+    env:
+      ARCH: ${{ matrix.arch == 'arm64' && 'arm64' || 'x64' }}
+    steps:
+      - name: Check out blst repository
+        uses: actions/checkout@v4
+        with:
+          repository: supranational/blst
+          ref: ${{ github.event.inputs.ref }}
+          path: blst
+
+      - name: Build
+        working-directory: blst
+        run: |
+          mkdir bin && cd bin
+          ../build.sh -shared
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: osx-${{ env.ARCH }}
+          path: blst/bin/libblst.dylib
+          retention-days: ${{ env.RETENTION }}
+          if-no-files-found: error
+
+  build-windows:
+    name: Windows build
+    runs-on: windows-latest
+    steps:
+      - name: Check out blst repository
+        uses: actions/checkout@v4
+        with:
+          repository: supranational/blst
+          ref: ${{ github.event.inputs.ref }}
+          path: blst
+
+      - name: Build
+        working-directory: blst
+        shell: pwsh
+        run: |
+          mkdir bin && cd bin
+          ../build.bat -shared
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-x64
+          path: blst/bin/blst.dll
+          retention-days: ${{ env.RETENTION }}
+          if-no-files-found: error
+
+  test:
+    name: Test
+    needs: [build-linux, build-macos, build-windows]
+    env:
+      BUILD_CONFIG: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out blst-bindings repository
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: src/Nethermind.Crypto.Bls/runtimes
+
+      - name: Move artifacts
+        working-directory: src/Nethermind.Crypto.Bls/runtimes
+        run: |
+          mv -f linux-arm64/libblst.so linux-arm64/native/libblst.so
+          mv -f linux-x64/libblst.so linux-x64/native/libblst.so
+          mv -f osx-arm64/libblst.dylib osx-arm64/native/libblst.dylib
+          mv -f osx-x64/libblst.dylib osx-x64/native/libblst.dylib
+          mv -f win-x64/blst.dll win-x64/native/blst.dll
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+
+      - name: Install dependencies
+        working-directory: src
+        run: dotnet restore
+
+      - name: Build
+        working-directory: src/Nethermind.Crypto.Bls
+        run:
+          dotnet build -c ${{ env.BUILD_CONFIG }} --no-restore
+          dotnet pack -c ${{ env.BUILD_CONFIG }} --no-build
+
+      - name: Test
+        working-directory: src/Nethermind.Crypto.Bls.Test
+        run: dotnet test -c ${{ env.BUILD_CONFIG }} --no-restore
+
+      - name: Publish
+        if: ${{ inputs.publish }}
+        working-directory: src/Nethermind.Crypto.Bls
+        run: |
+          dotnet nuget push bin/${{ env.BUILD_CONFIG }}/*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json

@@ -1,0 +1,7 @@
+This software incorporates material from third-party
+located at https://github.com/supranational/blst
+and covered by the following copyright and permission notice:
+
+Copyright Supranational LLC
+Licensed under the Apache License, Version 2.0, see LICENSE for details.
+SPDX-License-Identifier: Apache-2.0
