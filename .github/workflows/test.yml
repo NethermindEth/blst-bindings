@@ -99,7 +99,7 @@ jobs:
         run: |
           mkdir bin && cd bin
           ..\build.sh -shared
-          ls
+          dir
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
