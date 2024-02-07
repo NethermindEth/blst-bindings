@@ -97,7 +97,8 @@ jobs:
         working-directory: blst
         shell: pwsh
         run: |
-          mkdir bin && dir bin
+          mkdir bin
+          cd bin
           ..\build.bat -shared
       - name: Upload artifact
         uses: actions/upload-artifact@v4
