@@ -128,6 +128,11 @@ jobs:
       - name: Move artifacts
         working-directory: src/Nethermind.Crypto.Bls/runtimes
         run: |
+          mkdir linux-arm64/native
+          mkdir linux-x64/native
+          mkdir osx-arm64/native
+          mkdir osx-x64/native
+          mkdir win-x64/native
           mv -f linux-arm64/libblst.so linux-arm64/native/libblst.so
           mv -f linux-x64/libblst.so linux-x64/native/libblst.so
           mv -f osx-arm64/libblst.dylib osx-arm64/native/libblst.dylib
