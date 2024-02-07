@@ -97,13 +97,13 @@ jobs:
         working-directory: blst
         shell: pwsh
         run: |
-          mkdir bin && cd bin
-          ../build.sh -shared
+          mkdir bin && dir bin
+          ..\build.bat -shared
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: win-x64
-          path: blst/bin/blst.dll
+          path: blst\bin\blst.dll
           retention-days: ${{ env.RETENTION }}
           if-no-files-found: error
 
