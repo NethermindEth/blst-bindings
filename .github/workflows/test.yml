@@ -42,7 +42,7 @@ jobs:
         working-directory: blst
         run: |
           mkdir bin && cd bin
-          ../build.sh -shared
+          ../build.sh -dll
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -72,7 +72,7 @@ jobs:
         working-directory: blst
         run: |
           mkdir bin && cd bin
-          ../build.sh -shared
+          ../build.sh -dll
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -101,7 +101,7 @@ jobs:
         shell: pwsh
         run: |
           mkdir bin && cd bin
-          ..\build.bat -shared
+          ..\build.bat -dll
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -128,10 +128,10 @@ jobs:
       - name: Move artifacts
         working-directory: src/Nethermind.Crypto.Bls/runtimes
         run: |
-          mv -f linux-arm64/libblst.so linux-arm64/native/libblst.so
-          mv -f linux-x64/libblst.so linux-x64/native/libblst.so
-          mv -f osx-arm64/libblst.dylib osx-arm64/native/libblst.dylib
-          mv -f osx-x64/libblst.dylib osx-x64/native/libblst.dylib
+          mv -f linux-arm64/libblst.dll.so linux-arm64/native/libblst.dll.so
+          mv -f linux-x64/libblst.dll.so linux-x64/native/libblst.dll.so
+          mv -f osx-arm64/libblst.dll.dylib osx-arm64/native/libblst.dll.dylib
+          mv -f osx-x64/libblst.dll.dylib osx-x64/native/libblst.dll.dylib
           mv -f win-x64/blst.dll win-x64/native/blst.dll
 
       - name: Set up .NET

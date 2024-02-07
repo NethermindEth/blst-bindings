@@ -25,8 +25,8 @@ static Bls()
 {
     if (String.IsNullOrEmpty(dll)) {
         var name = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "blst.dll"
-                 : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)     ? "libblst.dylib"
-                 : "libblst.so";
+                 : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)     ? "libblst.dll.dylib"
+                 : "libblst.dll.so";
 
         var dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         var arch = RuntimeInformation.ProcessArchitecture switch {
