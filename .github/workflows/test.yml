@@ -114,7 +114,7 @@ jobs:
     name: Test
     needs: [build-linux, build-macos, build-windows]
     env:
-      BUILD_CONFIG: release
+      BUILD_CONFIG: Release
     runs-on: ubuntu-latest
     steps:
       - name: Check out blst-bindings repository
