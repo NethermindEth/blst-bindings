@@ -140,8 +140,8 @@ jobs:
       - name: Build
         working-directory: src/Nethermind.Crypto.Bls
         run: |
-          dotnet build -c ${{ env.BUILD_CONFIG }}
-          dotnet pack -c ${{ env.BUILD_CONFIG }} --no-build
+          dotnet build -c ${{ env.BUILD_CONFIG }} -p:VersionSuffix=preview.${{ github.run_number }}
+          dotnet pack -c ${{ env.BUILD_CONFIG }} --no-build -p:VersionSuffix=preview.${{ github.run_number }}
 
       - name: Test
         working-directory: src/Nethermind.Crypto.Test
@@ -152,4 +152,4 @@ jobs:
         if: ${{ inputs.publish }}
         working-directory: src/Nethermind.Crypto.Bls
         run: |
-          dotnet nuget push bin/${{ env.BUILD_CONFIG }}/*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
+          dotnet nuget push bin/${{ env.BUILD_CONFIG }}/*.nupkg -k ${{ secrets.NUGETTEST_API_KEY }} -s https://apiint.nugettest.org/v3/index.json
