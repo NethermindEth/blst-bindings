@@ -58,7 +58,6 @@ jobs:
       matrix:
         arch: [arm64, x86_64]
     runs-on: macos-latest
-    target: ${{ matrix.arch == 'arm64' && 'aarch64-apple-darwin' || 'x86_64-apple-darwin' }}
     env:
       ARCH: ${{ matrix.arch == 'arm64' && 'arm64' || 'x64' }}
     steps:
@@ -73,7 +72,7 @@ jobs:
         working-directory: blst
         run: |
           mkdir bin && cd bin
-          ../build.sh -dll
+          ../build.sh -dll --target=${{ matrix.arch == 'arm64' && 'aarch64-apple-darwin' || 'x86_64-apple-darwin' }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
