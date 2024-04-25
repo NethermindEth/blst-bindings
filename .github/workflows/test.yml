@@ -58,6 +58,7 @@ jobs:
       matrix:
         arch: [arm64, x86_64]
     runs-on: macos-latest
+    target: ${{ matrix.arch == 'arm64' && 'aarch64-apple-darwin' || 'x86_64-apple-darwin' }}
     env:
       ARCH: ${{ matrix.arch == 'arm64' && 'arm64' || 'x64' }}
     steps:

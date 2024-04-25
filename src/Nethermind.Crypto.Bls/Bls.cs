@@ -402,6 +402,8 @@ static extern bool blst_p1_is_equal([In] long[] a, [In] long[] b);
 [DllImport("blst.dll", CallingConvention = CallingConvention.Cdecl)]
 static extern void blst_sk_to_pk_in_g1([Out] long[] ret, [In] byte[] SK);
 [DllImport("blst.dll", CallingConvention = CallingConvention.Cdecl)]
+static extern void blst_map_to_g1([Out] long[] ret, [In] long[] u, [In] long[] v);
+[DllImport("blst.dll", CallingConvention = CallingConvention.Cdecl)]
 static extern
 void blst_encode_to_g1([Out] long[] ret, [In] byte[] msg, size_t msg_len,
                                          [In] byte[] dst, size_t dst_len,
@@ -476,23 +478,26 @@ public struct P1 {
     public bool is_equal(P1 p)  { return blst_p1_is_equal(point, p.point);  }
 
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+    public P1 map_to(long[] u, long[] v=null)
+    {
+        blst_map_to_g1(self(), u, v);
+        return this;
+    }
     public P1 hash_to(byte[] msg, string DST="", byte[] aug=null)
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
     {   byte[] dst = Encoding.UTF8.GetBytes(DST);
         blst_hash_to_g1(self(), msg, (size_t)msg.Length,
                                 dst, (size_t)dst.Length,
                                 aug, (size_t)(aug!=null ? aug.Length : 0));
         return this;
     }
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
     public P1 encode_to(byte[] msg, string DST="", byte[] aug=null)
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
     {   byte[] dst = Encoding.UTF8.GetBytes(DST);
         blst_encode_to_g1(self(), msg, (size_t)msg.Length,
                                   dst, (size_t)dst.Length,
                                   aug, (size_t)(aug!=null ? aug.Length : 0));
         return this;
     }
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 
     public P1 sign_with(SecretKey sk)
     {   blst_sign_pk_in_g2(point, point, sk.key); return this;   }
@@ -670,6 +675,8 @@ static extern bool blst_p2_is_equal([In] long[] a, [In] long[] b);
 [DllImport("blst.dll", CallingConvention = CallingConvention.Cdecl)]
 static extern void blst_sk_to_pk_in_g2([Out] long[] ret, [In] byte[] SK);
 [DllImport("blst.dll", CallingConvention = CallingConvention.Cdecl)]
+static extern void blst_map_to_g2([Out] long[] ret, [In] long[] u, [In] long[] v);
+[DllImport("blst.dll", CallingConvention = CallingConvention.Cdecl)]
 static extern
 void blst_encode_to_g2([Out] long[] ret, [In] byte[] msg, size_t msg_len,
                                          [In] byte[] dst, size_t dst_len,
@@ -744,23 +751,26 @@ public struct P2 {
     public bool is_equal(P2 p)  { return blst_p2_is_equal(point, p.point);  }
 
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+    public P2 map_to(long[] u, long[] v=null)
+    {
+        blst_map_to_g2(self(), u, v);
+        return this;
+    }
     public P2 hash_to(byte[] msg, string DST="", byte[] aug=null)
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
     {   byte[] dst = Encoding.UTF8.GetBytes(DST);
         blst_hash_to_g2(self(), msg, (size_t)msg.Length,
                                 dst, (size_t)dst.Length,
                                 aug, (size_t)(aug!=null ? aug.Length : 0));
         return this;
     }
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
     public P2 encode_to(byte[] msg, string DST="", byte[] aug=null)
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
     {   byte[] dst = Encoding.UTF8.GetBytes(DST);
         blst_encode_to_g2(self(), msg, (size_t)msg.Length,
                                   dst, (size_t)dst.Length,
                                   aug, (size_t)(aug!=null ? aug.Length : 0));
         return this;
     }
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 
     public P2 sign_with(SecretKey sk)
     {   blst_sign_pk_in_g1(point, point, sk.key); return this;   }
