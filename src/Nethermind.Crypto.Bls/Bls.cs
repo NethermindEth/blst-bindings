@@ -381,6 +381,11 @@ public struct P1_Affine {
     }
 }
 
+
+[DllImport("blst.dll", CallingConvention = CallingConvention.Cdecl)]
+static extern void blst_fp_from_bendian([Out] long[] ret, [In] byte[] a);
+
+
 [DllImport("blst.dll", CallingConvention = CallingConvention.Cdecl)]
 static extern size_t blst_p1_sizeof();
 [DllImport("blst.dll", CallingConvention = CallingConvention.Cdecl)]
@@ -478,9 +483,11 @@ public struct P1 {
     public bool is_equal(P1 p)  { return blst_p1_is_equal(point, p.point);  }
 
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-    public P1 map_to(long[] u, long[] v=null)
+    public P1 map_to(byte[] fp)
     {
-        blst_map_to_g1(self(), u, v);
+        long[] u = [];
+        blst_fp_from_bendian(u, fp);
+        blst_map_to_g1(self(), u, null);
         return this;
     }
     public P1 hash_to(byte[] msg, string DST="", byte[] aug=null)
@@ -751,11 +758,14 @@ public struct P2 {
     public bool is_equal(P2 p)  { return blst_p2_is_equal(point, p.point);  }
 
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-    public P2 map_to(long[] u, long[] v=null)
+    public P2 map_to(byte[] fp)
     {
-        blst_map_to_g2(self(), u, v);
+        long[] u = [];
+        blst_fp_from_bendian(u, fp);
+        blst_map_to_g2(self(), u, null);
         return this;
     }
+
     public P2 hash_to(byte[] msg, string DST="", byte[] aug=null)
     {   byte[] dst = Encoding.UTF8.GetBytes(DST);
         blst_hash_to_g2(self(), msg, (size_t)msg.Length,
