@@ -758,11 +758,13 @@ public struct P2 {
     public bool is_equal(P2 p)  { return blst_p2_is_equal(point, p.point);  }
 
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-    public P2 map_to(byte[] fp)
+    public P2 map_to(byte[] c0, byte[] c1)
     {
         long[] u = [];
-        blst_fp_from_bendian(u, fp);
-        blst_map_to_g2(self(), u, null);
+        long[] v = [];
+        blst_fp_from_bendian(u, c0);
+        blst_fp_from_bendian(v, c1);
+        blst_map_to_g2(self(), u, v);
         return this;
     }
 
