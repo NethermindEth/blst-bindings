@@ -682,7 +682,7 @@ static extern bool blst_p2_is_equal([In] long[] a, [In] long[] b);
 [DllImport("blst.dll", CallingConvention = CallingConvention.Cdecl)]
 static extern void blst_sk_to_pk_in_g2([Out] long[] ret, [In] byte[] SK);
 [DllImport("blst.dll", CallingConvention = CallingConvention.Cdecl)]
-static extern void blst_map_to_g2([Out] long[] ret, [In] long[][] u, [In] long[][] v);
+static extern void blst_map_to_g2([Out] long[] ret, [In] long[] u, [In] long[] v);
 [DllImport("blst.dll", CallingConvention = CallingConvention.Cdecl)]
 static extern
 void blst_encode_to_g2([Out] long[] ret, [In] byte[] msg, size_t msg_len,
@@ -760,10 +760,16 @@ public struct P2 {
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
     public P2 map_to(byte[] c0, byte[] c1)
     {
-        long[][] u = [[], []];
-        blst_fp_from_bendian(u[0], c0);
-        blst_fp_from_bendian(u[1], c1);
+        long[] u0 = [];
+        long[] u1 = [];
+        blst_fp_from_bendian(u0, c0);
+        blst_fp_from_bendian(u1, c1);
+
+        long[] u = new long[u0.Length + u1.Length];
+        u0.CopyTo(u.AsSpan());
+        u1.CopyTo(u.AsSpan()[u1.Length..]);
         blst_map_to_g2(self(), u, null);
+
         return this;
     }
 
