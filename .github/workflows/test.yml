@@ -48,7 +48,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-${{ matrix.arch }}
-          path: blst/bin/libblst.dll.so
+          path: blst/bin/libblst.so
           retention-days: ${{ env.RETENTION }}
           if-no-files-found: error
 
@@ -78,7 +78,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: osx-${{ env.ARCH }}
-          path: blst/bin/libblst.dll.dylib
+          path: blst/bin/libblst.dylib
           retention-days: ${{ env.RETENTION }}
           if-no-files-found: error
 
@@ -128,10 +128,10 @@ jobs:
       - name: Move artifacts
         working-directory: src/Nethermind.Crypto.Bls/runtimes
         run: |
-          mv -f linux-arm64/libblst.dll.so linux-arm64/native/libblst.dll.so
-          mv -f linux-x64/libblst.dll.so linux-x64/native/libblst.dll.so
-          mv -f osx-arm64/libblst.dll.dylib osx-arm64/native/libblst.dll.dylib
-          mv -f osx-x64/libblst.dll.dylib osx-x64/native/libblst.dll.dylib
+          mv -f linux-arm64/libbls.so linux-arm64/native/libblst.so
+          mv -f linux-x64/libblst.so linux-x64/native/libblst.so
+          mv -f osx-arm64/libblst.dylib osx-arm64/native/libblst.dylib
+          mv -f osx-x64/libblst.dylib osx-x64/native/libblst.dylib
           mv -f win-x64/blst.dll win-x64/native/blst.dll
 
       - name: Set up .NET
