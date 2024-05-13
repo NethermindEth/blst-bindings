@@ -14,6 +14,7 @@ using size_t = nuint;
 using System.Runtime.Loader;
 using System.Reflection;
 using System.IO;
+using System.Linq;
 
 namespace Nethermind.Crypto;
 
@@ -792,14 +793,14 @@ public struct P2 {
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
     public P2 map_to(byte[] c0, byte[] c1)
     {
-        long[] u0 = [];
-        long[] u1 = [];
+        long[] u0 = new long[6];
+        long[] u1 = new long[6];
+
         blst_fp_from_bendian(u0, c0);
         blst_fp_from_bendian(u1, c1);
 
-        long[] u = new long[u0.Length + u1.Length];
-        u0.CopyTo(u.AsSpan());
-        u1.CopyTo(u.AsSpan()[u0.Length..]);
+        long[] u = u0.Concat(u1).ToArray();
+
         blst_map_to_g2(self(), u, null);
 
         return this;

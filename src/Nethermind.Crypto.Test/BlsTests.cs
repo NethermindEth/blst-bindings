@@ -44,6 +44,9 @@ public class BlsTests
         G2 p = G2.generator();
         p.map_to(c0, c1);
 
+        Console.WriteLine(BitConverter.ToString(p.serialize()));
+        Console.WriteLine(BitConverter.ToString(expected));
+
         Assert.That(p.serialize(), Is.EqualTo(expected));
     }
 }
