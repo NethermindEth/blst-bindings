@@ -41,14 +41,13 @@ jobs:
       - name: Build
         working-directory: blst
         run: |
-          mkdir bin && cd bin
-          ../build.sh -dll
+          ./build.sh -shared
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-${{ matrix.arch }}
-          path: blst/bin/libblst.so
+          path: blst/libblst.so
           retention-days: ${{ env.RETENTION }}
           if-no-files-found: error
 
@@ -70,15 +69,13 @@ jobs:
 
       - name: Build
         working-directory: blst
-        run: |
-          mkdir bin && cd bin
-          ../build.sh -dll --target=${{ matrix.arch == 'arm64' && 'aarch64-apple-darwin' || 'x86_64-apple-darwin' }}
+        run: ./build.sh -shared --target=${{ matrix.arch == 'arm64' && 'aarch64-apple-darwin' || 'x86_64-apple-darwin' }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: osx-${{ env.ARCH }}
-          path: blst/bin/libblst.dylib
+          path: blst/libblst.dylib
           retention-days: ${{ env.RETENTION }}
           if-no-files-found: error
 
@@ -99,14 +96,12 @@ jobs:
       - name: Build
         working-directory: blst
         shell: pwsh
-        run: |
-          mkdir bin && cd bin
-          ..\build.bat -shared
+        run: ./build.bat -shared
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: win-x64
-          path: blst/bin/blst.dll
+          path: blst/blst.dll
           retention-days: ${{ env.RETENTION }}
           if-no-files-found: error
 
@@ -128,7 +123,7 @@ jobs:
       - name: Move artifacts
         working-directory: src/Nethermind.Crypto.Bls/runtimes
         run: |
-          mv -f linux-arm64/libbls.so linux-arm64/native/libblst.so
+          mv -f linux-arm64/libblst.so linux-arm64/native/libblst.so
           mv -f linux-x64/libblst.so linux-x64/native/libblst.so
           mv -f osx-arm64/libblst.dylib osx-arm64/native/libblst.dylib
           mv -f osx-x64/libblst.dylib osx-x64/native/libblst.dylib
