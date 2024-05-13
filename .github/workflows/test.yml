@@ -115,7 +115,7 @@ jobs:
     needs: [build-linux, build-macos, build-windows]
     env:
       BUILD_CONFIG: Release
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - name: Check out blst-bindings repository
         uses: actions/checkout@v4
