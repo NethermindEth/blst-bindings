@@ -19,31 +19,63 @@ namespace Nethermind.Crypto;
 
 public static class Bls {
 
-private static string dll;
+// private static string dll;
 
 static Bls()
 {
-    if (String.IsNullOrEmpty(dll)) {
-        var name = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "blst.dll"
-                 : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)     ? "libblst.dll.dylib"
-                 : "libblst.dll.so";
+    NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), LoadLibrary);
+    // if (String.IsNullOrEmpty(dll)) {
+    //     var name = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "blst.dll"
+    //              : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)     ? "libblst.dll.dylib"
+    //              : "libblst.dll.so";
 
-        var dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        var arch = RuntimeInformation.ProcessArchitecture switch {
-            Architecture.X64   => "x64",
-            Architecture.Arm64 => "arm64",
-            _ => "unsupported"
-        };
-        dll = Path.Combine(dir!, arch, name);
+    //     var dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+    //     var arch = RuntimeInformation.ProcessArchitecture switch {
+    //         Architecture.X64   => "x64",
+    //         Architecture.Arm64 => "arm64",
+    //         _ => "unsupported"
+    //     };
+    //     dll = Path.Combine(dir!, arch, name);
 
-        if (!File.Exists(dll))
-            dll = Path.Combine(Environment.CurrentDirectory, name);
+    //     if (!File.Exists(dll))
+    //         dll = Path.Combine(Environment.CurrentDirectory, name);
 
-        if (File.Exists(dll)) {
-            AssemblyLoadContext.Default.ResolvingUnmanagedDll += (asm, needs) =>
-                (needs == "blst.dll" ? NativeLibrary.Load(dll) : IntPtr.Zero);
-        }
+    //     if (File.Exists(dll)) {
+    //         AssemblyLoadContext.Default.ResolvingUnmanagedDll += (asm, needs) =>
+    //             (needs == "blst.dll" ? NativeLibrary.Load(dll) : IntPtr.Zero);
+    //     }
+    // }
+}
+
+private static nint LoadLibrary(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+{
+    string platform;
+
+    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+    {
+        libraryName = $"lib{libraryName}.so";
+        platform = "linux";
     }
+    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    {
+        libraryName = $"{libraryName}.dll";
+        platform = "win";
+    }
+    else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+    {
+        libraryName = $"lib{libraryName}.dylib";
+        platform = "osx";
+    }
+    else
+        throw new PlatformNotSupportedException();
+
+    if (NativeLibrary.TryLoad(libraryName, assembly, searchPath, out var handle))
+        return handle;
+
+    var arch = RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant();
+
+    return NativeLibrary.Load(
+        Path.Combine("runtimes", $"{platform}-{arch}", "native", libraryName), assembly, searchPath);
 }
 
 public enum ERROR {
