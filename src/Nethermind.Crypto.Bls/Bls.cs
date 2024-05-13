@@ -767,7 +767,7 @@ public struct P2 {
 
         long[] u = new long[u0.Length + u1.Length];
         u0.CopyTo(u.AsSpan());
-        u1.CopyTo(u.AsSpan()[u1.Length..]);
+        u1.CopyTo(u.AsSpan()[u0.Length..]);
         blst_map_to_g2(self(), u, null);
 
         return this;
