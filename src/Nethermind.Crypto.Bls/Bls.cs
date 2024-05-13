@@ -518,7 +518,7 @@ public struct P1 {
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
     public P1 map_to(byte[] fp)
     {
-        long[] u = [];
+        long[] u = new long[6];
         blst_fp_from_bendian(u, fp);
         blst_map_to_g1(self(), u, null);
         return this;
