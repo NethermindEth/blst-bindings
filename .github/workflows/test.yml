@@ -109,8 +109,8 @@ jobs:
     name: Test
     needs: [build-linux, build-macos, build-windows]
     env:
-      BUILD_CONFIG: Release
-    runs-on: macos-latest-xlarge
+      BUILD_CONFIG: release
+    runs-on: ubuntu-latest
     steps:
       - name: Check out blst-bindings repository
         uses: actions/checkout@v4
@@ -141,7 +141,7 @@ jobs:
       - name: Test
         working-directory: src/Nethermind.Crypto.Test
         run: |
-          dotnet test -c ${{ env.BUILD_CONFIG }} --no-restore
+          dotnet test -c ${{ env.BUILD_CONFIG }} --no-restore -v detailed
 
       - name: Publish
         if: ${{ inputs.publish }}
