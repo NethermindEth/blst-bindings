@@ -141,7 +141,7 @@ jobs:
       - name: Test
         working-directory: src/Nethermind.Crypto.Test
         run: |
-          dotnet test -c ${{ env.BUILD_CONFIG }} --no-restore -v detailed
+          dotnet test -c ${{ env.BUILD_CONFIG }} --no-restore
 
       - name: Publish
         if: ${{ inputs.publish }}
