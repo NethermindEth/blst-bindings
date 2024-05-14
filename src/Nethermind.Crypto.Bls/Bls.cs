@@ -23,31 +23,7 @@ public static class Bls
 
     private const string LibraryName = "blst";
 
-    static Bls()
-    {
-        NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), LoadLibrary);
-        // if (String.IsNullOrEmpty(dll)) {
-        //     var name = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "blst.dll"
-        //              : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)     ? "libblst.dll.dylib"
-        //              : "libblst.dll.so";
-
-        //     var dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        //     var arch = RuntimeInformation.ProcessArchitecture switch {
-        //         Architecture.X64   => "x64",
-        //         Architecture.Arm64 => "arm64",
-        //         _ => "unsupported"
-        //     };
-        //     dll = Path.Combine(dir!, arch, name);
-
-        //     if (!File.Exists(dll))
-        //         dll = Path.Combine(Environment.CurrentDirectory, name);
-
-        //     if (File.Exists(dll)) {
-        //         AssemblyLoadContext.Default.ResolvingUnmanagedDll += (asm, needs) =>
-        //             (needs == "blst.dll" ? NativeLibrary.Load(dll) : IntPtr.Zero);
-        //     }
-        // }
-    }
+    static Bls() => NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), LoadLibrary);
 
     private static nint LoadLibrary(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
     {
