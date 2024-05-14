@@ -482,6 +482,14 @@ public static class Bls
                                                         [In] long[] b);
     [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
     static extern void blst_p1_double([Out] long[] ret, [In] long[] a);
+    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
+    static extern size_t blst_p1s_mult_pippenger_scratch_sizeof(size_t npoints);
+    // void blst_p1s_mult_pippenger(blst_p1 *ret, const blst_p1_affine *const points[],
+    //                          size_t npoints, const byte *const scalars[],
+    //                          size_t nbits, limb_t *scratch);
+    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
+    static extern void blst_p1s_mult_pippenger([Out] long[] ret, [In] long[] points,
+        size_t npoints, [In] byte[] scalars, size_t nbits, [In] long[] scratch);
 
     public struct P1
     {
@@ -596,6 +604,35 @@ public static class Bls
             if (val[len - 1] == 0) len--;
             blst_p1_mult(point, point, val, (size_t)(len * 8));
             return this;
+        }
+        public P1 multi_mult(in P1_Affine[] points, in Scalar[] scalars)
+        {
+            long[] rawPoints = new long[points.Length * 12];
+            for (int i = 0; i < points.Length; i++)
+            {
+                points[i].point.CopyTo(rawPoints, i * 12);
+            }
+
+            byte[] rawScalars = new byte[scalars.Length * 8];
+            for (int i = 0; i < points.Length; i++)
+            {
+                points[i].point.CopyTo(rawPoints, i * 12);
+            }
+
+            size_t scratchSize = blst_p1s_mult_pippenger_scratch_sizeof((size_t)points.Length);
+            long[] scratch = new long[scratchSize];
+
+            blst_p1s_mult_pippenger(self(), rawPoints, (size_t)points.Length, rawScalars, (size_t)(scalars.Length * 8), scratch);
+            return this;
+        }
+        public P1 multi_mult(in P1[] points, in Scalar[] scalars)
+        {
+            P1_Affine[] affinePoints = new P1_Affine[points.Length];
+            for (int i = 0; i < points.Length; i++)
+            {
+                affinePoints[i] = points[i].to_affine();
+            }
+            return multi_mult(affinePoints, scalars);
         }
         public P1 cneg(bool flag) { blst_p1_cneg(point, flag); return this; }
         public P1 neg() { blst_p1_cneg(point, true); return this; }
