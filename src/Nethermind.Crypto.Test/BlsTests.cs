@@ -11,7 +11,6 @@ using G1 = Bls.P1;
 using G2 = Bls.P2;
 using GT = Bls.PT;
 
-[TestFixture]
 public class BlsTests
 {
     [Test]

@@ -41,14 +41,13 @@ jobs:
       - name: Build
         working-directory: blst
         run: |
-          mkdir bin && cd bin
-          ../build.sh -dll
+          ./build.sh -shared
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-${{ matrix.arch }}
-          path: blst/bin/libblst.dll.so
+          path: blst/libblst.so
           retention-days: ${{ env.RETENTION }}
           if-no-files-found: error
 
@@ -70,15 +69,13 @@ jobs:
 
       - name: Build
         working-directory: blst
-        run: |
-          mkdir bin && cd bin
-          ../build.sh -dll --target=${{ matrix.arch == 'arm64' && 'aarch64-apple-darwin' || 'x86_64-apple-darwin' }}
+        run: ./build.sh -shared --target=${{ matrix.arch == 'arm64' && 'aarch64-apple-darwin' || 'x86_64-apple-darwin' }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: osx-${{ env.ARCH }}
-          path: blst/bin/libblst.dll.dylib
+          path: blst/libblst.dylib
           retention-days: ${{ env.RETENTION }}
           if-no-files-found: error
 
@@ -99,14 +96,12 @@ jobs:
       - name: Build
         working-directory: blst
         shell: pwsh
-        run: |
-          mkdir bin && cd bin
-          ..\build.bat -shared
+        run: ./build.bat -shared
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: win-x64
-          path: blst/bin/blst.dll
+          path: blst/blst.dll
           retention-days: ${{ env.RETENTION }}
           if-no-files-found: error
 
@@ -114,8 +109,8 @@ jobs:
     name: Test
     needs: [build-linux, build-macos, build-windows]
     env:
-      BUILD_CONFIG: Release
-    runs-on: macos-latest-xlarge
+      BUILD_CONFIG: release
+    runs-on: ubuntu-latest
     steps:
       - name: Check out blst-bindings repository
         uses: actions/checkout@v4
@@ -128,19 +123,23 @@ jobs:
       - name: Move artifacts
         working-directory: src/Nethermind.Crypto.Bls/runtimes
         run: |
-          mv -f linux-arm64/libblst.dll.so linux-arm64/native/libblst.dll.so
-          mv -f linux-x64/libblst.dll.so linux-x64/native/libblst.dll.so
-          mv -f osx-arm64/libblst.dll.dylib osx-arm64/native/libblst.dll.dylib
-          mv -f osx-x64/libblst.dll.dylib osx-x64/native/libblst.dll.dylib
+          mv -f linux-arm64/libblst.so linux-arm64/native/libblst.so
+          mv -f linux-x64/libblst.so linux-x64/native/libblst.so
+          mv -f osx-arm64/libblst.dylib osx-arm64/native/libblst.dylib
+          mv -f osx-x64/libblst.dylib osx-x64/native/libblst.dylib
           mv -f win-x64/blst.dll win-x64/native/blst.dll
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
 
+      - name: Restore dependencies
+        working-directory: src
+        run: dotnet restore
+
       - name: Build
         working-directory: src/Nethermind.Crypto.Bls
         run: |
-          dotnet build -c ${{ env.BUILD_CONFIG }} -p:VersionSuffix=preview.${{ github.run_number }}
+          dotnet build -c ${{ env.BUILD_CONFIG }} --no-restore -p:VersionSuffix=preview.${{ github.run_number }}
           dotnet pack -c ${{ env.BUILD_CONFIG }} --no-build -p:VersionSuffix=preview.${{ github.run_number }}
 
       - name: Test
