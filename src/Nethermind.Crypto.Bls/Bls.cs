@@ -15,6 +15,7 @@ using System.Runtime.Loader;
 using System.Reflection;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace Nethermind.Crypto;
 
@@ -487,9 +488,17 @@ public static class Bls
     // void blst_p1s_mult_pippenger(blst_p1 *ret, const blst_p1_affine *const points[],
     //                          size_t npoints, const byte *const scalars[],
     //                          size_t nbits, limb_t *scratch);
+
+    // [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
+    // static extern void blst_p1s_mult_pippenger([Out] long[] ret, [In] long[] points,
+    //     size_t npoints, [In] byte[] scalars, size_t nbits, [Out] long[] scratch);
+
+    // unsafe static extern void blst_p1s_mult_pippenger(long* ret, long** points,
+    //     size_t npoints, byte* scalars, size_t nbits, long* scratch);
+
     [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_p1s_mult_pippenger([Out] long[] ret, [In] long[] points,
-        size_t npoints, [In] byte[] scalars, size_t nbits, [Out] long[] scratch);
+    unsafe static extern void blst_p1s_mult_pippenger(nint ret, nint points,
+        size_t npoints, nint scalars, size_t nbits, nint scratch);
 
     public struct P1
     {
@@ -605,25 +614,59 @@ public static class Bls
             blst_p1_mult(point, point, val, (size_t)(len * 8));
             return this;
         }
-        public P1 multi_mult(in P1_Affine[] points, in Scalar[] scalars)
+        public unsafe P1 multi_mult(in P1_Affine[] points, in Scalar[] scalars)
         {
-            long[] rawPoints = new long[points.Length * 12];
-            for (int i = 0; i < points.Length; i++)
+            fixed (long* t = new long[points.Length * 12])
+            fixed (byte* s = new byte[scalars.Length * 32])
             {
-                points[i].point.CopyTo(rawPoints, i * 12);
+                long*[] rawPoints = [t, null];
+                for (int i = 0; i < points.Length; i++)
+                {
+                    for (int j = 0; j < 12; j++)
+                    {
+                        t[(i*12) + j] = points[i].point[j];
+                    }
+                }
+
+                byte*[] rawScalars = [s, null];
+                for (int i = 0; i < scalars.Length; i++)
+                {
+                    //lendian?
+                    // scalars[i].to_bendian().CopyTo(rawScalars, i * 32);
+                    byte[] tmp = scalars[i].to_bendian();
+                    for (int j = 0; j < 32; j++)
+                    {
+                        s[(i*32) + j] = tmp[j];
+                    }
+                }
+
+                size_t scratchSize = blst_p1s_mult_pippenger_scratch_sizeof((size_t)points.Length) / sizeof(long);
+                long[] scratch = new long[scratchSize];
+
+                fixed (long* p = point)
+                fixed (long** rawPointsPtr = rawPoints)
+                fixed (byte** rawScalarsPtr = rawScalars)
+                fixed (long* scratchPtr = scratch)
+                    blst_p1s_mult_pippenger((nint)p, (nint)rawPointsPtr, (size_t)points.Length, (nint)rawScalarsPtr, (size_t)(rawScalars.Length * 8), (nint)scratchPtr);
             }
 
-            byte[] rawScalars = new byte[scalars.Length * 32];
-            for (int i = 0; i < scalars.Length; i++)
-            {
-                //lendian?
-                scalars[i].to_bendian().CopyTo(rawScalars, i * 32);
-            }
+            // long[] rawPoints = new long[points.Length * 8];
+            // for (int i = 0; i < points.Length; i++)
+            // {
+            //     points[i].point.CopyTo(rawPoints, i * 8);
+            // }
 
-            size_t scratchSize = blst_p1s_mult_pippenger_scratch_sizeof((size_t)points.Length) / sizeof(long);
-            long[] scratch = new long[scratchSize];
+            // byte[] rawScalars = new byte[scalars.Length * 32];
+            // for (int i = 0; i < scalars.Length; i++)
+            // {
+            //     //lendian?
+            //     scalars[i].to_bendian().CopyTo(rawScalars, i * 32);
+            // }
 
-            blst_p1s_mult_pippenger(self(), rawPoints, (size_t)points.Length, rawScalars, (size_t)(rawScalars.Length * 8), scratch);
+            // size_t scratchSize = blst_p1s_mult_pippenger_scratch_sizeof((size_t)points.Length) / sizeof(long);
+            // long[] scratch = new long[scratchSize];
+
+            // blst_p1s_mult_pippenger(self(), rawPoints, (size_t)points.Length, rawScalars, (size_t)(rawScalars.Length * 8), scratch);
             return this;
         }
         public P1 multi_mult(in P1[] points, in Scalar[] scalars)
@@ -784,8 +827,10 @@ public static class Bls
 
     [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
     static extern void blst_sk_to_pk_in_g2([Out] long[] ret, [In] byte[] SK);
+    // [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
+    // static extern void blst_map_to_g2([Out] long[] ret, [In] long[] u, [In] long[] v);
     [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_map_to_g2([Out] long[] ret, [In] long[] u, [In] long[] v);
+    unsafe static extern void blst_map_to_g2(nint ret, nint u, nint v);
     [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
     static extern
     void blst_encode_to_g2([Out] long[] ret, [In] byte[] msg, size_t msg_len,
@@ -865,7 +910,7 @@ public static class Bls
         public bool is_equal(P2 p) { return blst_p2_is_equal(point, p.point); }
 
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-        public P2 map_to(byte[] c0, byte[] c1)
+        public unsafe P2 map_to(byte[] c0, byte[] c1)
         {
             long[] u0 = new long[6];
             long[] u1 = new long[6];
@@ -875,7 +920,11 @@ public static class Bls
 
             long[] u = u0.Concat(u1).ToArray();
 
-            blst_map_to_g2(self(), u, null);
+            fixed (long* p = self())
+            fixed (long* uPtr = u)
+                blst_map_to_g2((nint)p, (nint)uPtr, (nint)null);
+
+            // blst_map_to_g2(self(), u, null);
             return this;
         }
         public P2 hash_to(byte[] msg, string DST = "", byte[] aug = null)
