@@ -489,7 +489,7 @@ public static class Bls
     //                          size_t nbits, limb_t *scratch);
     [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
     static extern void blst_p1s_mult_pippenger([Out] long[] ret, [In] long[] points,
-        size_t npoints, [In] byte[] scalars, size_t nbits, [In] long[] scratch);
+        size_t npoints, [In] byte[] scalars, size_t nbits, [Out] long[] scratch);
 
     public struct P1
     {
@@ -613,16 +613,17 @@ public static class Bls
                 points[i].point.CopyTo(rawPoints, i * 12);
             }
 
-            byte[] rawScalars = new byte[scalars.Length * 8];
-            for (int i = 0; i < points.Length; i++)
+            byte[] rawScalars = new byte[scalars.Length * 32];
+            for (int i = 0; i < scalars.Length; i++)
             {
-                points[i].point.CopyTo(rawPoints, i * 12);
+                //lendian?
+                scalars[i].to_bendian().CopyTo(rawScalars, i * 32);
             }
 
-            size_t scratchSize = blst_p1s_mult_pippenger_scratch_sizeof((size_t)points.Length);
+            size_t scratchSize = blst_p1s_mult_pippenger_scratch_sizeof((size_t)points.Length) / sizeof(long);
             long[] scratch = new long[scratchSize];
 
-            blst_p1s_mult_pippenger(self(), rawPoints, (size_t)points.Length, rawScalars, (size_t)(scalars.Length * 8), scratch);
+            blst_p1s_mult_pippenger(self(), rawPoints, (size_t)points.Length, rawScalars, (size_t)(rawScalars.Length * 8), scratch);
             return this;
         }
         public P1 multi_mult(in P1[] points, in Scalar[] scalars)
