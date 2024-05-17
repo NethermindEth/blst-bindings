@@ -11,11 +11,9 @@ using System.Text;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using size_t = nuint;
-using System.Runtime.Loader;
 using System.Reflection;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 
 namespace Nethermind.Crypto;
 
@@ -660,12 +658,21 @@ public static class Bls
             long[] rawPoints = new long[points.Length * 18];
             long[] rawAffines = new long[points.Length * 12];
 
-            for (int i = 0; i < points.Length; i++)
+            int i = 0;
+            foreach (P1 point in points)
             {
+                // filter out zero elements
+                if (point.is_inf())
+                {
+                    continue;
+                }
+
                 for (int j = 0; j < 18; j++)
                 {
-                    rawPoints[i*18 + j] = points[i].point[j];
+                    rawPoints[i*18 + j] = point.point[j];
                 }
+
+                i++;
             }
 
             fixed (long* rawPointsPtr = rawPoints)
@@ -673,11 +680,11 @@ public static class Bls
                 long*[] rawPointsWrapper = [rawPointsPtr, null];
 
                 fixed (long** rawPointsWrapperPtr = rawPointsWrapper)
-                    blst_p1s_to_affine(rawAffines, rawPointsWrapperPtr, (size_t)points.Length);
+                    blst_p1s_to_affine(rawAffines, rawPointsWrapperPtr, (size_t)i);
             }
 
             fixed (long* rawAffinesPtr = rawAffines)
-                return multi_mult_raw_affines(rawAffinesPtr, scalars, points.Length);
+                return multi_mult_raw_affines(rawAffinesPtr, scalars, i);
         }
         public P1 cneg(bool flag) { blst_p1_cneg(point, flag); return this; }
         public P1 neg() { blst_p1_cneg(point, true); return this; }
@@ -1024,12 +1031,21 @@ public static class Bls
             long[] rawPoints = new long[points.Length * 36];
             long[] rawAffines = new long[points.Length * 24];
 
-            for (int i = 0; i < points.Length; i++)
+            int i = 0;
+            foreach (P2 point in points)
             {
+                // filter out zero elements
+                if (point.is_inf())
+                {
+                    continue;
+                }
+
                 for (int j = 0; j < 36; j++)
                 {
-                    rawPoints[i*36 + j] = points[i].point[j];
+                    rawPoints[i*36 + j] = point.point[j];
                 }
+
+                i++;
             }
 
             fixed (long* rawPointsPtr = rawPoints)
@@ -1037,11 +1053,11 @@ public static class Bls
                 long*[] rawPointsWrapper = [rawPointsPtr, null];
 
                 fixed (long** rawPointsWrapperPtr = rawPointsWrapper)
-                    blst_p2s_to_affine(rawAffines, rawPointsWrapperPtr, (size_t)points.Length);
+                    blst_p2s_to_affine(rawAffines, rawPointsWrapperPtr, (size_t)i);
             }
 
             fixed (long* rawAffinesPtr = rawAffines)
-                return multi_mult_raw_affines(rawAffinesPtr, scalars, points.Length);
+                return multi_mult_raw_affines(rawAffinesPtr, scalars, i);
         }
         public P2 cneg(bool flag) { blst_p2_cneg(point, flag); return this; }
         public P2 neg() { blst_p2_cneg(point, true); return this; }
