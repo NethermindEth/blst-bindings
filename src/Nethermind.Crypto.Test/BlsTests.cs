@@ -72,9 +72,8 @@ public class BlsTests
             points[i] = G1FromUntrimmed(inputData[offset..(offset + 128)]);
             scalars[i] = new(inputData[(offset + 128)..(offset + 160)].ToArray());
         }
-        G1 res = G1.generator();
+        G1 res = new G1().multi_mult(points, scalars);
         // res.multi_mult(ref points, ref scalars);
-        res.multi_mult(points, scalars);
 
         Console.WriteLine(BitConverter.ToString(res.serialize()));
         Console.WriteLine(BitConverter.ToString(expected));

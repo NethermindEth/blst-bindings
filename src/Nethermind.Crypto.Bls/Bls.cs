@@ -660,7 +660,7 @@ public static class Bls
         //     size_t len = 0;
         //     for (int i = 0; i < points.Length; i++)
         //     {
-        //         prepare_mult(ref points[i], ref scalars[i]);
+        //         prepare_mult(ref scalars[i]);
         //         len += get_size(scalars[i].val);
         //     }
 
