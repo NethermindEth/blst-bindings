@@ -627,7 +627,7 @@ public static class Bls
             return this;
         }
 
-        private unsafe P1 multi_mult_raw_affines(long* rawAffinesPtr, in Scalar[] scalars, int npoints, size_t nbits)
+        private unsafe P1 multi_mult_raw_affines(long* rawAffinesPtr, in Scalar[] scalars, int npoints)
         {
             byte[] rawScalars = new byte[((size_t)npoints * 32)];
             for (int i = 0; i < npoints; i++)
@@ -655,15 +655,8 @@ public static class Bls
             return this;
         }
 
-        public unsafe P1 multi_mult(ref P1[] points, ref Scalar[] scalars)
+        public unsafe P1 multi_mult(in P1[] points, in Scalar[] scalars)
         {
-            size_t len = 0;
-            // for (int i = 0; i < points.Length; i++)
-            // {
-            //     prepare_mult(ref scalars[i]);
-            //     len += get_size(scalars[i].val);
-            // }
-
             long[] rawPoints = new long[points.Length * 18];
             long[] rawAffines = new long[points.Length * 12];
 
@@ -684,26 +677,8 @@ public static class Bls
             }
 
             fixed (long* rawAffinesPtr = rawAffines)
-                return multi_mult_raw_affines(rawAffinesPtr, scalars, points.Length, len * 8);
+                return multi_mult_raw_affines(rawAffinesPtr, scalars, points.Length);
         }
-
-        // public P1 multi_mult(in P1[] points, in Scalar[] scalars)
-        // {
-        //     for (int i = 0; i < points.Length; i++)
-        //     {
-        //         P1 r = points[i].mult(scalars[i]);
-        //         if (i == 0)
-        //         {
-        //             this = r;
-        //         }
-        //         else
-        //         {
-        //             add(r);
-        //         }
-        //     }
-
-        //     return this;
-        // }
         public P1 cneg(bool flag) { blst_p1_cneg(point, flag); return this; }
         public P1 neg() { blst_p1_cneg(point, true); return this; }
         public P1 add(P1 a)
