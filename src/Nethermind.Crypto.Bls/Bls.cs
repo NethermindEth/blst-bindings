@@ -594,7 +594,7 @@ public static class Bls
             blst_p1_mult(point, point, scalar.val, (size_t)255);
             return this;
         }
-        public P1 mult(BigInteger scalar)
+        private byte[] prepare_mult(BigInteger scalar)
         {
             byte[] val;
             if (scalar.Sign < 0)
@@ -606,61 +606,103 @@ public static class Bls
             {
                 val = scalar.ToByteArray();
             }
+            return val;
+        }
+        private static size_t get_size(in byte[] val)
+        {
             int len = val.Length;
             if (val[len - 1] == 0) len--;
-            blst_p1_mult(point, point, val, (size_t)(len * 8));
+            return (size_t) len;
+        }
+        private void prepare_mult(ref Scalar scalar)
+        {
+            byte[] val = prepare_mult(new(scalar.to_bendian(), false, true));
+            scalar.from_bendian(val);
+        }
+        public P1 mult(BigInteger scalar)
+        {
+            byte[] val = prepare_mult(scalar);
+            size_t len = get_size(val);
+            blst_p1_mult(point, point, val, len * 8);
             return this;
         }
-        public unsafe P1 multi_mult(long* rawAffinesPtr, in Scalar[] scalars, int npoints)
+
+        // private unsafe P1 multi_mult_raw_affines(long* rawAffinesPtr, in Scalar[] scalars, int npoints, size_t nbits)
+        // {
+        //     byte[] rawScalars = new byte[((size_t)npoints * 32)];
+        //     for (int i = 0; i < npoints; i++)
+        //     {
+        //         byte[] tmp = scalars[i].to_bendian();
+        //         for (int j = 0; j < 32; j++)
+        //         {
+        //             rawScalars[(i*32) + j] = tmp[j];
+        //         }
+        //     }
+
+        //     fixed (byte* rawScalarsPtr = rawScalars)
+        //     {
+        //         long*[] rawAffinesWrapper = [rawAffinesPtr, null];
+        //         byte*[] rawScalarsWrapper = [rawScalarsPtr, null];
+
+        //         size_t scratchSize = blst_p1s_mult_pippenger_scratch_sizeof((size_t)npoints) / sizeof(long);
+        //         long[] scratch = new long[scratchSize];
+
+        //         fixed (long** rawAffinesWrapperPtr = rawAffinesWrapper)
+        //         fixed (byte** rawScalarsWrapperPtr = rawScalarsWrapper)
+        //         fixed (long* scratchPtr = scratch)
+        //             blst_p1s_mult_pippenger(self(), rawAffinesWrapperPtr, (size_t)npoints, rawScalarsWrapperPtr, 255, scratchPtr);
+        //     }
+        //     return this;
+        // }
+
+        // public unsafe P1 multi_mult(ref P1[] points, ref Scalar[] scalars)
+        // {
+        //     size_t len = 0;
+        //     for (int i = 0; i < points.Length; i++)
+        //     {
+        //         prepare_mult(ref points[i], ref scalars[i]);
+        //         len += get_size(scalars[i].val);
+        //     }
+
+        //     long[] rawPoints = new long[points.Length * 18];
+        //     long[] rawAffines = new long[points.Length * 12];
+
+        //     for (int i = 0; i < points.Length; i++)
+        //     {
+        //         for (int j = 0; j < 18; j++)
+        //         {
+        //             rawPoints[i*18 + j] = points[i].point[j];
+        //         }
+        //     }
+
+        //     fixed (long* rawPointsPtr = rawPoints)
+        //     {
+        //         long*[] rawPointsWrapper = [rawPointsPtr, null];
+
+        //         fixed (long** rawPointsWrapperPtr = rawPointsWrapper)
+        //             blst_p1s_to_affine(rawAffines, rawPointsWrapperPtr, (size_t)points.Length);
+        //     }
+
+        //     fixed (long* rawAffinesPtr = rawAffines)
+        //         return multi_mult_raw_affines(rawAffinesPtr, scalars, points.Length, len * 8);
+        // }
+
+        public P1 multi_mult(in P1[] points, in Scalar[] scalars)
         {
-            byte[] rawScalars = new byte[(size_t)npoints * 32];
-            for (int i = 0; i < npoints; i++)
-            {
-                byte[] tmp = scalars[i].to_bendian();
-                for (int j = 0; j < 32; j++)
-                {
-                    rawScalars[(i*32) + j] = tmp[j];
-                }
-            }
-
-            fixed (byte* rawScalarsPtr = rawScalars)
-            {
-                long*[] rawAffinesWrapper = [rawAffinesPtr, null];
-                byte*[] rawScalarsWrapper =  [rawScalarsPtr, null];
-
-                size_t scratchSize = blst_p1s_mult_pippenger_scratch_sizeof((size_t)npoints) / sizeof(long);
-                long[] scratch = new long[scratchSize];
-
-                fixed (long** rawAffinesWrapperPtr = rawAffinesWrapper)
-                fixed (byte** rawScalarsWrapperPtr = rawScalarsWrapper)
-                fixed (long* scratchPtr = scratch)
-                    blst_p1s_mult_pippenger(self(), rawAffinesWrapperPtr, (size_t)npoints, rawScalarsWrapperPtr, (size_t)(rawScalars.Length * 8), scratchPtr);
-            }
-            return this;
-        }
-        public unsafe P1 multi_mult(in P1[] points, in Scalar[] scalars)
-        {
-            long[] rawPoints = new long[points.Length * 18];
-            long[] rawAffines = new long[points.Length * 12];
-
             for (int i = 0; i < points.Length; i++)
             {
-                for (int j = 0; j < 18; j++)
+                P1 r = points[i].mult(scalars[i]);
+                if (i == 0)
                 {
-                    rawPoints[i*18 + j] = points[i].point[j];
+                    this = r;
+                }
+                else
+                {
+                    add(r);
                 }
             }
 
-            fixed (long* rawPointsPtr = rawPoints)
-            {
-                long*[] rawPointsWrapper = [rawPointsPtr, null];
-
-                fixed (long** rawPointsWrapperPtr = rawPointsWrapper)
-                    blst_p1s_to_affine(rawAffines, rawPointsWrapperPtr, (size_t)points.Length);
-            }
-
-            fixed (long* rawAffinesPtr = rawAffines)
-                return multi_mult(rawAffinesPtr, scalars, points.Length);
+            return this;
         }
         public P1 cneg(bool flag) { blst_p1_cneg(point, flag); return this; }
         public P1 neg() { blst_p1_cneg(point, true); return this; }
@@ -961,6 +1003,23 @@ public static class Bls
             int len = val.Length;
             if (val[len - 1] == 0) len--;
             blst_p2_mult(point, point, val, (size_t)(len * 8));
+            return this;
+        }
+        public P2 multi_mult(in P2[] points, in Scalar[] scalars)
+        {
+            for (int i = 0; i < points.Length; i++)
+            {
+                P2 r = points[i].mult(scalars[i]);
+                if (i == 0)
+                {
+                    this = r;
+                }
+                else
+                {
+                    add(r);
+                }
+            }
+
             return this;
         }
         public P2 cneg(bool flag) { blst_p2_cneg(point, flag); return this; }
