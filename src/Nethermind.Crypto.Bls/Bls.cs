@@ -515,9 +515,21 @@ public static class Bls
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P1_COMPRESSED_SZ
                                                           : 2 * P1_COMPRESSED_SZ))
                 throw new Exception(ERROR.BAD_ENCODING);
-            ERROR err = blst_p1_deserialize(point, inp);
-            if (err != ERROR.SUCCESS)
-                throw new Exception(err);
+
+            if (len == 2 * P1_COMPRESSED_SZ)
+            {
+                blst_fp_from_bendian(point, inp[..48]);
+                long[] tmp = new long[6];
+                blst_fp_from_bendian(tmp, inp[48..]);
+                tmp.CopyTo(point.AsSpan()[6..]);
+            }
+            else
+            {
+                ERROR err = blst_p1_deserialize(point, inp);
+                if (err != ERROR.SUCCESS)
+                    throw new Exception(err);
+            }
+
             blst_p1_from_affine(point, point);
         }
         public P1(P1_Affine affine) : this(true)
@@ -898,9 +910,28 @@ public static class Bls
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P2_COMPRESSED_SZ
                                                           : 2 * P2_COMPRESSED_SZ))
                 throw new Exception(ERROR.BAD_ENCODING);
-            ERROR err = blst_p2_deserialize(point, inp);
-            if (err != ERROR.SUCCESS)
-                throw new Exception(err);
+
+            if (len == 2 * P2_COMPRESSED_SZ)
+            {
+                blst_fp_from_bendian(point, inp[48..]);
+
+                long[] tmp = new long[6];
+                blst_fp_from_bendian(tmp, inp[..48]);
+                tmp.CopyTo(point.AsSpan()[6..]);
+
+                blst_fp_from_bendian(tmp, inp[144..]);
+                tmp.CopyTo(point.AsSpan()[12..]);
+
+                blst_fp_from_bendian(tmp, inp[96..]);
+                tmp.CopyTo(point.AsSpan()[18..]);
+            }
+            else
+            {
+                ERROR err = blst_p2_deserialize(point, inp);
+                if (err != ERROR.SUCCESS)
+                    throw new Exception(err);
+            }
+
             blst_p2_from_affine(point, point);
         }
         public P2(P2_Affine affine) : this(true)

@@ -105,6 +105,21 @@ public class BlsTests
         Assert.That(res.serialize(), Is.EqualTo(expected));
     }
 
+    [Test]
+    public void G1OutsideSubgroupTest()
+    {
+        byte[] bytes = Convert.FromHexString("000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002");
+        try
+        {
+            new G1(bytes);
+        }
+        catch (Exception)
+        {
+            Assert.That(false);
+        }
+        Assert.That(true);
+    }
+
     public static G1 G1FromUntrimmed(in ReadOnlyMemory<byte> untrimmed)
     {
         byte[] trimmed = new byte[LenG1Trimmed];
