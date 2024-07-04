@@ -36,12 +36,12 @@ jobs:
 
       - name: Set up GNU C compiler for arm64
         if: matrix.arch == 'arm64'
-        run: sudo apt-get update && sudo apt-get install -y gcc-12 gcc-12-aarch64-linux-gnu
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
 
       - name: Build
         working-directory: blst
         run: |
-          ${{ matrix.arch == 'arm64' && 'CC=gcc-12' || '' }} ./build.sh -shared ${{ matrix.arch == 'arm64' && '--target=aarch64-linux-gnu' || '' }} 
+          ${{ matrix.arch == 'arm64' && 'CC=aarch64-linux-gnu-gcc' || '' }} ./build.sh -shared
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
