@@ -93,6 +93,11 @@ jobs:
       - name: Set up PATH
         uses: ilammy/msvc-dev-cmd@v1
 
+      - name: Enable long PATHs
+        working-directory: blst
+        shell: pwsh
+        run: New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+
       - name: Build
         working-directory: blst
         shell: pwsh
