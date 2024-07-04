@@ -64,7 +64,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: supranational/blst
-          ref: ${{ github.event.inputs.ref }}
+          ref: v0.3.12
           path: blst
 
       - name: Build
@@ -96,7 +96,7 @@ jobs:
       - name: Build
         working-directory: blst
         shell: pwsh
-        run: '.\build.bat -shared'
+        run: ./build.bat -shared
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
