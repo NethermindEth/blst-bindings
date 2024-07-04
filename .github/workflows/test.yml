@@ -41,7 +41,7 @@ jobs:
       - name: Build
         working-directory: blst
         run: |
-          CC=gcc-12-aarch64-linux-gnu ./build.sh -shared
+          ${{ matrix.arch == 'arm64' && 'CC=gcc-12-aarch64-linux-gnu'}} ./build.sh -shared
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
