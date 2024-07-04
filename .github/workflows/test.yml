@@ -41,7 +41,7 @@ jobs:
       - name: Build
         working-directory: blst
         run: |
-          ./build.sh -shared --target=${{ matrix.arch == 'arm64' && 'aarch64-unknown-linux-gnu' || 'x86_64-unknown-linux-gnu' }}
+          ./build.sh -shared --target=${{ matrix.arch == 'arm64' && 'aarch64-linux-gnu' || 'x86_64-linux-gnu' }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
