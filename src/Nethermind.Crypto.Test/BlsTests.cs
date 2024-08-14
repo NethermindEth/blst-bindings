@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 using System;
-using System.Buffers.Binary;
 using NUnit.Framework;
 
 namespace Nethermind.Crypto.Test;
@@ -14,6 +13,15 @@ using Scalar = Bls.Scalar;
 
 public class BlsTests
 {
+    private const int LenScalar = 32;
+    private const int LenG1 = 2 * LenFp;
+    private const int LenG1Trimmed = 2 * LenFpTrimmed;
+    private const int LenG2 = 4 * LenFp;
+    private const int LenG2Trimmed = 4 * LenFpTrimmed;
+    private const int LenFp = 64;
+    private const int LenFpTrimmed = 48;
+    private const int LenFpPad = LenFp - LenFpTrimmed;
+
     [Test]
     public void PairingTest1()
     {
@@ -137,12 +145,4 @@ public class BlsTests
         untrimmed[(3 * LenFp + LenFpPad)..].CopyTo(trimmed.AsMemory()[(LenFpTrimmed * 2)..]);
         return new(trimmed);
     }
-    private const int LenScalar = 32;
-    private const int LenG1 = 2 * LenFp;
-    private const int LenG1Trimmed = 2 * LenFpTrimmed;
-    private const int LenG2 = 4 * LenFp;
-    private const int LenG2Trimmed = 4 * LenFpTrimmed;
-    private const int LenFp = 64;
-    private const int LenFpTrimmed = 48;
-    private const int LenFpPad = LenFp - LenFpTrimmed;
 }
