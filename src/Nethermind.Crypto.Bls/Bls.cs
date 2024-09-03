@@ -457,18 +457,18 @@ public static partial class Bls
         public bool IsEqual(in P1Affine p)
             => blst_p1_affine_is_equal(point, p.point);
 
-//         ERROR core_verify(P2_Affine pk, bool hash_or_encode,
-// #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-//                           byte[] msg, string DST = "", byte[] aug = null)
-// #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
-//         {
-//             byte[] dst = Encoding.UTF8.GetBytes(DST);
-//             return blst_core_verify_pk_in_g2(pk.point, point,
-//                                              hash_or_encode,
-//                                              msg, (size_t)msg.Length,
-//                                              dst, (size_t)dst.Length,
-//                                              aug, (size_t)(aug != null ? aug.Length : 0));
-//         }
+        //         ERROR core_verify(P2_Affine pk, bool hash_or_encode,
+        // #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+        //                           byte[] msg, string DST = "", byte[] aug = null)
+        // #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+        //         {
+        //             byte[] dst = Encoding.UTF8.GetBytes(DST);
+        //             return blst_core_verify_pk_in_g2(pk.point, point,
+        //                                              hash_or_encode,
+        //                                              msg, (size_t)msg.Length,
+        //                                              dst, (size_t)dst.Length,
+        //                                              aug, (size_t)(aug != null ? aug.Length : 0));
+        //         }
 
         public static P1Affine Generator()
         {
@@ -559,7 +559,7 @@ public static partial class Bls
     //                          size_t nbits, limb_t *scratch);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static     unsafe partial void blst_p1s_mult_pippenger([Out] long[] ret, long** points,
+    static unsafe partial void blst_p1s_mult_pippenger([Out] long[] ret, long** points,
         size_t npoints, byte** scalars, size_t nbits, long* scratch);
 
     // void blst_p1s_to_affine(blst_p1_affine dst[], const blst_p1 *const points[],
@@ -916,18 +916,18 @@ public static partial class Bls
         public readonly bool IsEqual(in P2Affine p)
             => blst_p2_affine_is_equal(point, p.point);
 
-//         readonly ERROR core_verify(P1Affine pk, bool hash_or_encode,
-// #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-//                           byte[] msg, string DST = "", byte[] aug = null)
-// #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
-//         {
-//             byte[] dst = Encoding.UTF8.GetBytes(DST);
-//             return blst_core_verify_pk_in_g1(pk.point, point,
-//                                              hash_or_encode,
-//                                              msg, (size_t)msg.Length,
-//                                              dst, (size_t)dst.Length,
-//                                              aug, (size_t)(aug != null ? aug.Length : 0));
-//         }
+        //         readonly ERROR core_verify(P1Affine pk, bool hash_or_encode,
+        // #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+        //                           byte[] msg, string DST = "", byte[] aug = null)
+        // #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+        //         {
+        //             byte[] dst = Encoding.UTF8.GetBytes(DST);
+        //             return blst_core_verify_pk_in_g1(pk.point, point,
+        //                                              hash_or_encode,
+        //                                              msg, (size_t)msg.Length,
+        //                                              dst, (size_t)dst.Length,
+        //                                              aug, (size_t)(aug != null ? aug.Length : 0));
+        //         }
 
         public static P2Affine Generator()
         {
