@@ -398,13 +398,13 @@ public static partial class Bls
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     static private partial IntPtr blst_p1_generator();
 
-    [LibraryImport(LibraryName)]
-    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial ERROR blst_core_verify_pk_in_g2([In] long[] pk, [In] long[] sig,
-                                                  [MarshalAs(UnmanagedType.Bool)] bool hash_or_encode,
-                                                  [In] byte[] msg, size_t msg_len,
-                                                  [In] byte[] dst, size_t dst_len,
-                                                  [In] byte[] aug, size_t aug_len);
+    // [LibraryImport(LibraryName)]
+    // [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    // static private partial ERROR blst_core_verify_pk_in_g2([In] long[] pk, [In] long[] sig,
+    //                                               [MarshalAs(UnmanagedType.Bool)] bool hash_or_encode,
+    //                                               [In] byte[] msg, size_t msg_len,
+    //                                               [In] byte[] dst, size_t dst_len,
+    //                                               [In] byte[] aug, size_t aug_len);
 
     public readonly struct P1Affine
     {
@@ -857,13 +857,13 @@ public static partial class Bls
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     static private partial IntPtr blst_p2_generator();
 
-    [LibraryImport(LibraryName)]
-    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial ERROR blst_core_verify_pk_in_g1([In] long[] pk, [In] long[] sig,
-                                                  [MarshalAs(UnmanagedType.Bool)] bool hash_or_encode,
-                                                  [In] byte[] msg, size_t msg_len,
-                                                  [In] byte[] dst, size_t dst_len,
-                                                  [In] byte[] aug, size_t aug_len);
+    // [LibraryImport(LibraryName)]
+    // [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    // static private partial ERROR blst_core_verify_pk_in_g1([In] long[] pk, [In] long[] sig,
+    //                                               [MarshalAs(UnmanagedType.Bool)] bool hash_or_encode,
+    //                                               [In] byte[] msg, size_t msg_len,
+    //                                               [In] byte[] dst, size_t dst_len,
+    //                                               [In] byte[] aug, size_t aug_len);
 
     public readonly struct P2Affine
     {
