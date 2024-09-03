@@ -799,7 +799,7 @@ public static partial class Bls
         }
     }
 
-    public static P1 G1() { return P1.Generator(); }
+    public static P1 G1() => P1.Generator();
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
