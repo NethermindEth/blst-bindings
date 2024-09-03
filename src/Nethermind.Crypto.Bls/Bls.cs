@@ -12,14 +12,12 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Reflection;
 using System.IO;
-using System.Linq;
 using size_t = nuint;
 
 namespace Nethermind.Crypto;
 
-public static class Bls
+public static partial class Bls
 {
-
     private const string LibraryName = "blst";
 
     static Bls() => NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), LoadLibrary);
@@ -44,50 +42,49 @@ public static class Bls
             platform = "osx";
         }
         else
+        {
             throw new PlatformNotSupportedException();
+        }
 
         if (NativeLibrary.TryLoad(libraryName, assembly, searchPath, out var handle))
+        {
             return handle;
+        }
 
         var arch = RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant();
-
-        return NativeLibrary.Load(
-            Path.Combine("runtimes", $"{platform}-{arch}", "native", libraryName), assembly, searchPath);
+        var path = Path.Combine("runtimes", $"{platform}-{arch}", "native", libraryName);
+        return NativeLibrary.Load(path, assembly, searchPath);
     }
 
     public enum ERROR
     {
         SUCCESS = 0,
-        BAD_ENCODING,
-        POINT_NOT_ON_CURVE,
-        POINT_NOT_IN_GROUP,
-        AGGR_TYPE_MISMATCH,
-        VERIFY_FAIL,
-        PK_IS_INFINITY,
-        BAD_SCALAR,
+        BADENCODING,
+        POINTNOTONCURVE,
+        POINTNOTINGROUP,
+        AGGRTYPEMISMATCH,
+        VERIFYFAIL,
+        PKISINFINITY,
+        BADSCALAR,
     }
 
-    public class Exception : ApplicationException
+    public class Exception(ERROR err) : ApplicationException
     {
-        private readonly ERROR code;
+        private readonly ERROR code = err;
 
-        public Exception(ERROR err) { code = err; }
         public override string Message
         {
-            get
+            get => code switch
             {
-                switch (code)
-                {
-                    case ERROR.BAD_ENCODING: return "bad encoding";
-                    case ERROR.POINT_NOT_ON_CURVE: return "point not on curve";
-                    case ERROR.POINT_NOT_IN_GROUP: return "point not in group";
-                    case ERROR.AGGR_TYPE_MISMATCH: return "aggregate type mismatch";
-                    case ERROR.VERIFY_FAIL: return "verify failure";
-                    case ERROR.PK_IS_INFINITY: return "public key is infinity";
-                    case ERROR.BAD_SCALAR: return "bad scalar";
-                    default: return "";
-                }
-            }
+                ERROR.BADENCODING => "bad encoding",
+                ERROR.POINTNOTONCURVE => "point not on curve",
+                ERROR.POINTNOTINGROUP => "point not in group",
+                ERROR.AGGRTYPEMISMATCH => "aggregate type mismatch",
+                ERROR.VERIFYFAIL => "verify failure",
+                ERROR.PKISINFINITY => "public key is infinity",
+                ERROR.BADSCALAR => "bad scalar",
+                _ => "",
+            };
         }
     }
 
@@ -97,129 +94,148 @@ public static class Bls
         LittleEndian
     }
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern
-    void blst_keygen([Out] byte[] key, [In] byte[] IKM, size_t IKM_len,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_keygen([Out] byte[] key, [In] byte[] IKM, size_t IKM_len,
                                        [In] byte[] info, size_t info_len);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern
-    void blst_keygen_v3([Out] byte[] key, [In] byte[] IKM, size_t IKM_len,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_keygen_v3([Out] byte[] key, [In] byte[] IKM, size_t IKM_len,
                                           [In] byte[] info, size_t info_len);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern
-    void blst_keygen_v4_5([Out] byte[] key, [In] byte[] IKM, size_t IKM_len,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_keygen_v4_5([Out] byte[] key, [In] byte[] IKM, size_t IKM_len,
                                             [In] byte[] salt, size_t salt_len,
                                             [In] byte[] info, size_t info_len);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern
-    void blst_keygen_v5([Out] byte[] key, [In] byte[] IKM, size_t IKM_len,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_keygen_v5([Out] byte[] key, [In] byte[] IKM, size_t IKM_len,
                                           [In] byte[] salt, size_t salt_len,
                                           [In] byte[] info, size_t info_len);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_derive_master_eip2333([Out] byte[] key,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_derive_master_eip2333([Out] byte[] key,
                                                   [In] byte[] IKM, size_t IKM_len);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_derive_child_eip2333([Out] byte[] key,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_derive_child_eip2333([Out] byte[] key,
                                                  [In] byte[] master, uint child_index);
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_scalar_from_bendian([Out] byte[] ret, [In] byte[] key);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_bendian_from_scalar([Out] byte[] ret, [In] byte[] key);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_sk_check([In] byte[] key);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_scalar_from_bendian([Out] byte[] ret, [In] byte[] key);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_bendian_from_scalar([Out] byte[] ret, [In] byte[] key);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_sk_check([In] byte[] key);
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_scalar_from_lendian([Out] byte[] key, [In] byte[] inp);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_lendian_from_scalar([Out] byte[] key, [In] byte[] inp);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_scalar_from_lendian([Out] byte[] key, [In] byte[] inp);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_lendian_from_scalar([Out] byte[] key, [In] byte[] inp);
 
     public struct SecretKey
     {
         internal byte[] key;
 
-        //public SecretKey() { key = new byte[32]; }
         public SecretKey(in byte[] IKM, string info)
-        { key = new byte[32]; keygen(IKM, info); }
+        { key = new byte[32]; Keygen(IKM, info); }
         public SecretKey(in byte[] inp, ByteOrder order = ByteOrder.BigEndian)
         {
             key = new byte[32];
             switch (order)
             {
-                case ByteOrder.BigEndian: from_bendian(inp); break;
-                case ByteOrder.LittleEndian: from_lendian(inp); break;
+                case ByteOrder.BigEndian: FromBendian(inp); break;
+                case ByteOrder.LittleEndian: FromLendian(inp); break;
             }
         }
-        public void keygen(in byte[] IKM, string info = "")
+        public void Keygen(in byte[] IKM, string info = "")
         {
-            if (key == null) key = new byte[32];
+            key ??= new byte[32];
             byte[] info_bytes = Encoding.UTF8.GetBytes(info);
             blst_keygen(key, IKM, (size_t)IKM.Length,
                              info_bytes, (size_t)info_bytes.Length);
         }
-        public void keygen_v3(in byte[] IKM, string info = "")
+        public void KeygenV3(in byte[] IKM, string info = "")
         {
-            if (key == null) key = new byte[32];
+            key ??= new byte[32];
             byte[] info_bytes = Encoding.UTF8.GetBytes(info);
             blst_keygen_v3(key, IKM, (size_t)IKM.Length,
                                 info_bytes, (size_t)info_bytes.Length);
         }
-        public void keygen_v4_5(in byte[] IKM, string salt, string info = "")
+        public void KeygenV45(in byte[] IKM, string salt, string info = "")
         {
-            if (key == null) key = new byte[32];
+            key ??= new byte[32];
             byte[] salt_bytes = Encoding.UTF8.GetBytes(salt);
             byte[] info_bytes = Encoding.UTF8.GetBytes(info);
             blst_keygen_v4_5(key, IKM, (size_t)IKM.Length,
                                   salt_bytes, (size_t)salt_bytes.Length,
                                   info_bytes, (size_t)info_bytes.Length);
         }
-        public void keygen_v5(in byte[] IKM, in byte[] salt, string info = "")
+        public void KeygenV5(in byte[] IKM, in byte[] salt, string info = "")
         {
-            if (key == null) key = new byte[32];
+            key ??= new byte[32];
             byte[] info_bytes = Encoding.UTF8.GetBytes(info);
             blst_keygen_v5(key, IKM, (size_t)IKM.Length,
                                 salt, (size_t)salt.Length,
                                 info_bytes, (size_t)info_bytes.Length);
         }
-        public void keygen_v5(in byte[] IKM, string salt, string info = "")
-        { keygen_v5(IKM, Encoding.UTF8.GetBytes(salt), info); }
-        public void derive_master_eip2333(in byte[] IKM)
+        public void KeygenV5(in byte[] IKM, string salt, string info = "")
+        { KeygenV5(IKM, Encoding.UTF8.GetBytes(salt), info); }
+        public void DeriveMasterEip2333(in byte[] IKM)
         {
-            if (key == null) key = new byte[32];
+            key ??= new byte[32];
             blst_derive_master_eip2333(key, IKM, (size_t)IKM.Length);
         }
-        public SecretKey(in SecretKey master, uint child_index)
+        public SecretKey(in SecretKey master, uint childIndex)
         {
             key = new byte[32];
-            blst_derive_child_eip2333(key, master.key, child_index);
+            blst_derive_child_eip2333(key, master.key, childIndex);
         }
 
-        public void from_bendian(in byte[] inp)
+        public void FromBendian(in byte[] inp)
         {
             if (inp.Length != 32)
-                throw new Exception(ERROR.BAD_ENCODING);
-            if (key == null) key = new byte[32];
+            {
+                throw new Exception(ERROR.BADENCODING);
+            }
+
+            key ??= new byte[32];
             blst_scalar_from_bendian(key, inp);
+
             if (!blst_sk_check(key))
-                throw new Exception(ERROR.BAD_ENCODING);
+            {
+                throw new Exception(ERROR.BADENCODING);
+            }
         }
-        public void from_lendian(in byte[] inp)
+        public void FromLendian(in byte[] inp)
         {
             if (inp.Length != 32)
-                throw new Exception(ERROR.BAD_ENCODING);
-            if (key == null) key = new byte[32];
+            {
+                throw new Exception(ERROR.BADENCODING);
+            }
+
+            key ??= new byte[32];
             blst_scalar_from_lendian(key, inp);
+
             if (!blst_sk_check(key))
-                throw new Exception(ERROR.BAD_ENCODING);
+            {
+                throw new Exception(ERROR.BADENCODING);
+            }
         }
 
-        public byte[] to_bendian()
+        public readonly byte[] ToBendian()
         {
             byte[] ret = new byte[32];
             blst_bendian_from_scalar(ret, key);
             return ret;
         }
-        public byte[] to_lendian()
+        public readonly byte[] ToLendian()
         {
             byte[] ret = new byte[32];
             blst_lendian_from_scalar(ret, key);
@@ -227,273 +243,330 @@ public static class Bls
         }
     }
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_scalar_from_be_bytes([Out] byte[] ret, [In] byte[] inp,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_scalar_from_be_bytes([Out] byte[] ret, [In] byte[] inp,
                                                                    size_t inp_len);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_scalar_from_le_bytes([Out] byte[] ret, [In] byte[] inp,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_scalar_from_le_bytes([Out] byte[] ret, [In] byte[] inp,
                                                                    size_t inp_len);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_sk_add_n_check([Out] byte[] ret, [In] byte[] a,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_sk_add_n_check([Out] byte[] ret, [In] byte[] a,
                                                              [In] byte[] b);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_sk_sub_n_check([Out] byte[] ret, [In] byte[] a,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_sk_sub_n_check([Out] byte[] ret, [In] byte[] a,
                                                              [In] byte[] b);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_sk_mul_n_check([Out] byte[] ret, [In] byte[] a,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_sk_mul_n_check([Out] byte[] ret, [In] byte[] a,
                                                              [In] byte[] b);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_sk_inverse([Out] byte[] ret, [In] byte[] a);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_sk_inverse([Out] byte[] ret, [In] byte[] a);
 
     public struct Scalar
     {
         internal byte[] val;
 
-        //public Scalar() { val = new byte[32]; }
         public Scalar(in byte[] inp, ByteOrder order = ByteOrder.BigEndian)
         {
             val = new byte[32];
             switch (order)
             {
-                case ByteOrder.BigEndian: from_bendian(inp); break;
-                case ByteOrder.LittleEndian: from_lendian(inp); break;
+                case ByteOrder.BigEndian: FromBendian(inp); break;
+                case ByteOrder.LittleEndian: FromLendian(inp); break;
             }
         }
-        private Scalar(bool _) { val = new byte[32]; }
         private Scalar(in Scalar orig) { val = (byte[])orig.val.Clone(); }
 
-        public Scalar dup() { return new Scalar(this); }
+        public readonly Scalar Dup() => new(this);
 
-        public void from_bendian(in byte[] inp)
+        public void FromBendian(in byte[] inp)
         {
-            if (val == null) val = new byte[32];
+            val ??= new byte[32];
             blst_scalar_from_be_bytes(val, inp, (size_t)inp.Length);
         }
-        public void from_lendian(in byte[] inp)
+        public void FromLendian(in byte[] inp)
         {
-            if (val == null) val = new byte[32];
+            val ??= new byte[32];
             blst_scalar_from_le_bytes(val, inp, (size_t)inp.Length);
         }
 
-        public byte[] to_bendian()
+        public readonly byte[] ToBendian()
         {
             byte[] ret = new byte[32];
             blst_bendian_from_scalar(ret, val);
             return ret;
         }
-        public byte[] to_lendian()
+        public readonly byte[] ToLendian()
         {
             byte[] ret = new byte[32];
             blst_lendian_from_scalar(ret, val);
             return ret;
         }
 
-        public Scalar add(in SecretKey a)
+        public readonly Scalar Add(in SecretKey a)
         {
             if (!blst_sk_add_n_check(val, val, a.key))
-                throw new Exception(ERROR.BAD_SCALAR);
+            {
+                throw new Exception(ERROR.BADSCALAR);
+            }
             return this;
         }
-        public Scalar add(in Scalar a)
+        public readonly Scalar Add(in Scalar a)
         {
             if (!blst_sk_add_n_check(val, val, a.val))
-                throw new Exception(ERROR.BAD_SCALAR);
+            {
+                throw new Exception(ERROR.BADSCALAR);
+            }
             return this;
         }
-        public Scalar sub(in Scalar a)
+        public readonly Scalar Sub(in Scalar a)
         {
             if (!blst_sk_sub_n_check(val, val, a.val))
-                throw new Exception(ERROR.BAD_SCALAR);
+            {
+                throw new Exception(ERROR.BADSCALAR);
+            }
             return this;
         }
-        public Scalar mul(in Scalar a)
+        public readonly Scalar Mul(in Scalar a)
         {
             if (!blst_sk_mul_n_check(val, val, a.val))
-                throw new Exception(ERROR.BAD_SCALAR);
+            {
+                throw new Exception(ERROR.BADSCALAR);
+            }
             return this;
         }
-        public Scalar inverse()
+        public readonly Scalar Inverse()
         { blst_sk_inverse(val, val); return this; }
 
         public static Scalar operator +(in Scalar a, in Scalar b)
-        { return a.dup().add(b); }
+            => a.Dup().Add(b);
         public static Scalar operator -(in Scalar a, in Scalar b)
-        { return a.dup().sub(b); }
+            => a.Dup().Sub(b);
         public static Scalar operator *(in Scalar a, in Scalar b)
-        { return a.dup().mul(b); }
+            => a.Dup().Mul(b);
         public static Scalar operator /(in Scalar a, in Scalar b)
-        { return b.dup().inverse().mul(a); }
+            => b.Dup().Inverse().Mul(a);
     }
 
     private const int P1_COMPRESSED_SZ = 384 / 8;
     private const int P2_COMPRESSED_SZ = 2 * P1_COMPRESSED_SZ;
 
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern size_t blst_p1_affine_sizeof();
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial size_t blst_p1_affine_sizeof();
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern ERROR blst_p1_deserialize([Out] long[] ret, [In] byte[] inp);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_p1_affine_serialize([Out] byte[] ret, [In] long[] inp);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_p1_affine_compress([Out] byte[] ret, [In] long[] inp);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial ERROR blst_p1_deserialize([Out] long[] ret, [In] byte[] inp);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p1_affine_serialize([Out] byte[] ret, [In] long[] inp);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p1_affine_compress([Out] byte[] ret, [In] long[] inp);
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_p1_to_affine([Out] long[] ret, [In] long[] inp);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_p1_affine_on_curve([In] long[] point);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_p1_affine_in_g1([In] long[] point);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_p1_affine_is_inf([In] long[] point);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_p1_affine_is_equal([In] long[] a, [In] long[] b);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p1_to_affine([Out] long[] ret, [In] long[] inp);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_p1_affine_on_curve([In] long[] point);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_p1_affine_in_g1([In] long[] point);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_p1_affine_is_inf([In] long[] point);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_p1_affine_is_equal([In] long[] a, [In] long[] b);
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern IntPtr blst_p1_generator();
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial IntPtr blst_p1_generator();
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern ERROR blst_core_verify_pk_in_g2([In] long[] pk, [In] long[] sig,
-                                                  bool hash_or_encode,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial ERROR blst_core_verify_pk_in_g2([In] long[] pk, [In] long[] sig,
+                                                  [MarshalAs(UnmanagedType.Bool)] bool hash_or_encode,
                                                   [In] byte[] msg, size_t msg_len,
                                                   [In] byte[] dst, size_t dst_len,
                                                   [In] byte[] aug, size_t aug_len);
 
-    public struct P1_Affine
+    public readonly struct P1Affine
     {
         internal readonly long[] point;
 
         private static readonly int sz = (int)blst_p1_affine_sizeof() / sizeof(long);
 
-        //public P1_Affine()            { point = new long[sz]; }
-        private P1_Affine(bool _) { point = new long[sz]; }
-        private P1_Affine(in P1_Affine p) { point = (long[])p.point.Clone(); }
+        private P1Affine(bool _) { point = new long[sz]; }
+        private P1Affine(in P1Affine p) { point = (long[])p.point.Clone(); }
 
-        public P1_Affine(in byte[] inp) : this(true)
+        public P1Affine(in byte[] inp) : this(true)
         {
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P1_COMPRESSED_SZ
                                                           : 2 * P1_COMPRESSED_SZ))
-                throw new Exception(ERROR.BAD_ENCODING);
+            {
+                throw new Exception(ERROR.BADENCODING);
+            }
+
             ERROR err = blst_p1_deserialize(point, inp);
             if (err != ERROR.SUCCESS)
+            {
                 throw new Exception(err);
+            }
         }
-        public P1_Affine(in P1 jacobian) : this(true)
+        public P1Affine(in P1 jacobian) : this(true)
         { blst_p1_to_affine(point, jacobian.point); }
 
-        public P1_Affine dup() { return new P1_Affine(this); }
-        public P1 to_jacobian() { return new P1(this); }
-        public byte[] serialize()
+        public P1Affine Dup() { return new P1Affine(this); }
+        public P1 ToJacobian() { return new P1(this); }
+        public byte[] Serialize()
         {
             byte[] ret = new byte[2 * P1_COMPRESSED_SZ];
             blst_p1_affine_serialize(ret, point);
             return ret;
         }
-        public byte[] compress()
+        public byte[] Compress()
         {
             byte[] ret = new byte[P1_COMPRESSED_SZ];
             blst_p1_affine_compress(ret, point);
             return ret;
         }
 
-        public bool on_curve() { return blst_p1_affine_on_curve(point); }
-        public bool in_group() { return blst_p1_affine_in_g1(point); }
-        public bool is_inf() { return blst_p1_affine_is_inf(point); }
-        public bool is_equal(in P1_Affine p)
-        { return blst_p1_affine_is_equal(point, p.point); }
+        public bool OnCurve()
+            => blst_p1_affine_on_curve(point);
+        public bool InGroup()
+            => blst_p1_affine_in_g1(point);
+        public bool IsInf()
+            => blst_p1_affine_is_inf(point);
+        public bool IsEqual(in P1Affine p)
+            => blst_p1_affine_is_equal(point, p.point);
 
-        ERROR core_verify(P2_Affine pk, bool hash_or_encode,
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-                          byte[] msg, string DST = "", byte[] aug = null)
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
-        {
-            byte[] dst = Encoding.UTF8.GetBytes(DST);
-            return blst_core_verify_pk_in_g2(pk.point, point,
-                                             hash_or_encode,
-                                             msg, (size_t)msg.Length,
-                                             dst, (size_t)dst.Length,
-                                             aug, (size_t)(aug != null ? aug.Length : 0));
-        }
+//         ERROR core_verify(P2_Affine pk, bool hash_or_encode,
+// #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+//                           byte[] msg, string DST = "", byte[] aug = null)
+// #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+//         {
+//             byte[] dst = Encoding.UTF8.GetBytes(DST);
+//             return blst_core_verify_pk_in_g2(pk.point, point,
+//                                              hash_or_encode,
+//                                              msg, (size_t)msg.Length,
+//                                              dst, (size_t)dst.Length,
+//                                              aug, (size_t)(aug != null ? aug.Length : 0));
+//         }
 
-        public static P1_Affine generator()
+        public static P1Affine Generator()
         {
-            var ret = new P1_Affine(true);
+            var ret = new P1Affine(true);
             Marshal.Copy(blst_p1_generator(), ret.point, 0, ret.point.Length);
             return ret;
         }
     }
 
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_fp_from_bendian([Out] long[] ret, [In] byte[] a);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_fp_from_bendian([Out] long[] ret, [In] byte[] a);
 
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern size_t blst_p1_sizeof();
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_p1_serialize([Out] byte[] ret, [In] long[] inp);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_p1_compress([Out] byte[] ret, [In] long[] inp);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_p1_from_affine([Out] long[] ret, [In] long[] inp);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial size_t blst_p1_sizeof();
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p1_serialize([Out] byte[] ret, [In] long[] inp);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p1_compress([Out] byte[] ret, [In] long[] inp);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p1_from_affine([Out] long[] ret, [In] long[] inp);
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_p1_on_curve([In] long[] point);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_p1_in_g1([In] long[] point);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_p1_is_inf([In] long[] point);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_p1_is_equal([In] long[] a, [In] long[] b);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_p1_on_curve([In] long[] point);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_p1_in_g1([In] long[] point);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_p1_is_inf([In] long[] point);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_p1_is_equal([In] long[] a, [In] long[] b);
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_sk_to_pk_in_g1([Out] long[] ret, [In] byte[] SK);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_map_to_g1([Out] long[] ret, [In] long[] u, [In] long[] v);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern
-    void blst_encode_to_g1([Out] long[] ret, [In] byte[] msg, size_t msg_len,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_sk_to_pk_in_g1([Out] long[] ret, [In] byte[] SK);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_map_to_g1([Out] long[] ret, [In] long[] u, [In] long[] v);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_encode_to_g1([Out] long[] ret, [In] byte[] msg, size_t msg_len,
                                              [In] byte[] dst, size_t dst_len,
                                              [In] byte[] aug, size_t aug_len);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern
-    void blst_hash_to_g1([Out] long[] ret, [In] byte[] msg, size_t msg_len,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_hash_to_g1([Out] long[] ret, [In] byte[] msg, size_t msg_len,
                                            [In] byte[] dst, size_t dst_len,
                                            [In] byte[] aug, size_t aug_len);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern
-    void blst_sign_pk_in_g2([Out] long[] ret, [In] long[] hash, [In] byte[] SK);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_sign_pk_in_g2([Out] long[] ret, [In] long[] hash, [In] byte[] SK);
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern
-    void blst_p1_mult([Out] long[] ret, [In] long[] a,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p1_mult([Out] long[] ret, [In] long[] a,
                                         [In] byte[] scalar, size_t nbits);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_p1_cneg([Out] long[] ret, bool cbit);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern
-    void blst_p1_add_or_double([Out] long[] ret, [In] long[] a, [In] long[] b);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern
-    void blst_p1_add_or_double_affine([Out] long[] ret, [In] long[] a,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p1_cneg([Out] long[] ret, [MarshalAs(UnmanagedType.Bool)] bool cbit);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p1_add_or_double([Out] long[] ret, [In] long[] a, [In] long[] b);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p1_add_or_double_affine([Out] long[] ret, [In] long[] a,
                                                         [In] long[] b);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_p1_double([Out] long[] ret, [In] long[] a);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern size_t blst_p1s_mult_pippenger_scratch_sizeof(size_t npoints);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p1_double([Out] long[] ret, [In] long[] a);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial size_t blst_p1s_mult_pippenger_scratch_sizeof(size_t npoints);
     // void blst_p1s_mult_pippenger(blst_p1 *ret, const blst_p1_affine *const points[],
     //                          size_t npoints, const byte *const scalars[],
     //                          size_t nbits, limb_t *scratch);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    unsafe static extern void blst_p1s_mult_pippenger([Out] long[] ret, long** points,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static     unsafe partial void blst_p1s_mult_pippenger([Out] long[] ret, long** points,
         size_t npoints, byte** scalars, size_t nbits, long* scratch);
 
     // void blst_p1s_to_affine(blst_p1_affine dst[], const blst_p1 *const points[],
     //                     size_t npoints);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    unsafe static extern void blst_p1s_to_affine([Out] long[] dst, long** points, size_t npoints);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static unsafe partial void blst_p1s_to_affine([Out] long[] dst, long** points, size_t npoints);
 
     public struct P1
     {
@@ -501,11 +574,10 @@ public static class Bls
 
         private static readonly int sz = (int)blst_p1_sizeof() / sizeof(long);
 
-        //public P1()           { point = new long[sz]; }
         private P1(bool _) { point = new long[sz]; }
         private P1(in P1 p) { point = (long[])p.point.Clone(); }
-        private long[] self()
-        { if (point == null) { point = new long[sz]; } return point; }
+        private long[] Self()
+        { point ??= new long[sz]; return point; }
 
         public P1(in SecretKey sk) : this(true)
         { blst_sk_to_pk_in_g1(point, sk.key); }
@@ -514,7 +586,9 @@ public static class Bls
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P1_COMPRESSED_SZ
                                                           : 2 * P1_COMPRESSED_SZ))
-                throw new Exception(ERROR.BAD_ENCODING);
+            {
+                throw new Exception(ERROR.BADENCODING);
+            }
 
             if (len == 2 * P1_COMPRESSED_SZ)
             {
@@ -532,79 +606,88 @@ public static class Bls
 
             blst_p1_from_affine(point, point);
         }
-        public P1(in P1_Affine affine) : this(true)
+        public P1(in P1Affine affine) : this(true)
         { blst_p1_from_affine(point, affine.point); }
 
-        public P1 dup() { return new P1(this); }
-        public P1_Affine to_affine() { return new P1_Affine(this); }
-        public byte[] serialize()
+        public readonly P1 Dup() => new(this);
+        public readonly P1Affine ToAffine() => new(this);
+        public readonly byte[] Serialize()
         {
             byte[] ret = new byte[2 * P1_COMPRESSED_SZ];
             blst_p1_serialize(ret, point);
             return ret;
         }
-        public byte[] compress()
+        public readonly byte[] Compress()
         {
             byte[] ret = new byte[P1_COMPRESSED_SZ];
             blst_p1_compress(ret, point);
             return ret;
         }
 
-        public bool on_curve() { return blst_p1_on_curve(point); }
-        public bool in_group() { return blst_p1_in_g1(point); }
-        public bool is_inf() { return blst_p1_is_inf(point); }
-        public bool is_equal(in P1 p) { return blst_p1_is_equal(point, p.point); }
+        public readonly bool OnCurve()
+            => blst_p1_on_curve(point);
+        public readonly bool InGroup()
+            => blst_p1_in_g1(point);
+        public readonly bool IsInf()
+            => blst_p1_is_inf(point);
+        public readonly bool IsEqual(in P1 p)
+            => blst_p1_is_equal(point, p.point);
 
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-        public P1 map_to(in byte[] fp)
+        public P1 MapTo(in byte[] fp)
         {
             long[] u = new long[6];
             blst_fp_from_bendian(u, fp);
-            blst_map_to_g1(self(), u, null);
+            blst_map_to_g1(Self(), u, null);
             return this;
         }
-        public P1 hash_to(in byte[] msg, string DST = "", in byte[] aug = null)
+        public P1 HashTo(in byte[] msg, string DST = "", in byte[] aug = null)
         {
             byte[] dst = Encoding.UTF8.GetBytes(DST);
-            blst_hash_to_g1(self(), msg, (size_t)msg.Length,
+            blst_hash_to_g1(Self(), msg, (size_t)msg.Length,
                                     dst, (size_t)dst.Length,
                                     aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
-        public P1 encode_to(in byte[] msg, string DST = "", in byte[] aug = null)
+        public P1 EncodeTo(in byte[] msg, string DST = "", in byte[] aug = null)
         {
             byte[] dst = Encoding.UTF8.GetBytes(DST);
-            blst_encode_to_g1(self(), msg, (size_t)msg.Length,
+            blst_encode_to_g1(Self(), msg, (size_t)msg.Length,
                                       dst, (size_t)dst.Length,
                                       aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
 #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 
-        public P1 sign_with(in SecretKey sk)
+        public readonly P1 SignWith(in SecretKey sk)
         { blst_sign_pk_in_g2(point, point, sk.key); return this; }
-        public P1 sign_with(in Scalar scalar)
+        public readonly P1 SignWith(in Scalar scalar)
         { blst_sign_pk_in_g2(point, point, scalar.val); return this; }
 
-        public void aggregate(in P1_Affine inp)
+        public readonly void Aggregate(in P1Affine inp)
         {
             if (blst_p1_affine_in_g1(inp.point))
+            {
                 blst_p1_add_or_double_affine(point, point, inp.point);
+            }
             else
-                throw new Exception(ERROR.POINT_NOT_IN_GROUP);
+            {
+                throw new Exception(ERROR.POINTNOTINGROUP);
+            }
         }
 
-        public P1 mult(in byte[] scalar)
+        public readonly P1 Mult(in byte[] scalar)
         {
             blst_p1_mult(point, point, scalar, (size_t)(scalar.Length * 8));
             return this;
         }
-        public P1 mult(in Scalar scalar)
+        public readonly P1 Mult(in Scalar scalar)
         {
-            blst_p1_mult(point, point, scalar.val, (size_t)255);
+            blst_p1_mult(point, point, scalar.val, 255);
             return this;
         }
-        private byte[] prepare_mult(in BigInteger scalar)
+
+        private readonly byte[] PrepareMult(in BigInteger scalar)
         {
             byte[] val;
             if (scalar.Sign < 0)
@@ -618,32 +701,32 @@ public static class Bls
             }
             return val;
         }
-        private static size_t get_size(in byte[] val)
+        private static size_t GetSize(in byte[] val)
         {
             int len = val.Length;
             if (val[len - 1] == 0) len--;
             return (size_t)len;
         }
-        public P1 mult(in BigInteger scalar)
+        public readonly P1 Mult(in BigInteger scalar)
         {
-            byte[] val = prepare_mult(scalar);
-            size_t len = get_size(val);
+            byte[] val = PrepareMult(scalar);
+            size_t len = GetSize(val);
             blst_p1_mult(point, point, val, len * 8);
             return this;
         }
 
-        private void prepare_mult(ref Scalar scalar)
+        private readonly void PrepareMult(ref Scalar scalar)
         {
-            byte[] val = prepare_mult(new(scalar.to_bendian(), true, true));
-            scalar.from_bendian(val);
+            byte[] val = PrepareMult(new(scalar.ToBendian(), true, true));
+            scalar.FromBendian(val);
         }
 
-        private unsafe P1 multi_mult_raw_affines(long* rawAffinesPtr, in Scalar[] scalars, int npoints)
+        private unsafe P1 MultiMultRawAffines(long* rawAffinesPtr, in Scalar[] scalars, int npoints)
         {
             byte[] rawScalars = new byte[((size_t)npoints * 32)];
             for (int i = 0; i < npoints; i++)
             {
-                byte[] tmp = scalars[i].to_lendian();
+                byte[] tmp = scalars[i].ToLendian();
                 for (int j = 0; j < 32; j++)
                 {
                     rawScalars[(i * 32) + j] = tmp[j];
@@ -661,12 +744,12 @@ public static class Bls
                 fixed (long** rawAffinesWrapperPtr = rawAffinesWrapper)
                 fixed (byte** rawScalarsWrapperPtr = rawScalarsWrapper)
                 fixed (long* scratchPtr = scratch)
-                    blst_p1s_mult_pippenger(self(), rawAffinesWrapperPtr, (size_t)npoints, rawScalarsWrapperPtr, 256, scratchPtr);
+                    blst_p1s_mult_pippenger(Self(), rawAffinesWrapperPtr, (size_t)npoints, rawScalarsWrapperPtr, 256, scratchPtr);
             }
             return this;
         }
 
-        public unsafe P1 multi_mult(in P1[] points, in Scalar[] scalars)
+        public unsafe P1 MultiMult(in P1[] points, in Scalar[] scalars)
         {
             long[] rawPoints = new long[points.Length * 18];
             long[] rawAffines = new long[points.Length * 12];
@@ -675,7 +758,7 @@ public static class Bls
             foreach (P1 point in points)
             {
                 // filter out zero elements
-                if (point.is_inf())
+                if (point.IsInf())
                 {
                     continue;
                 }
@@ -697,18 +780,18 @@ public static class Bls
             }
 
             fixed (long* rawAffinesPtr = rawAffines)
-                return multi_mult_raw_affines(rawAffinesPtr, scalars, i);
+                return MultiMultRawAffines(rawAffinesPtr, scalars, i);
         }
-        public P1 cneg(bool flag) { blst_p1_cneg(point, flag); return this; }
-        public P1 neg() { blst_p1_cneg(point, true); return this; }
-        public P1 add(in P1 a)
+        public readonly P1 Cneg(bool flag) { blst_p1_cneg(point, flag); return this; }
+        public readonly P1 Neg() { blst_p1_cneg(point, true); return this; }
+        public readonly P1 Add(in P1 a)
         { blst_p1_add_or_double(point, point, a.point); return this; }
-        public P1 add(in P1_Affine a)
+        public readonly P1 Add(in P1Affine a)
         { blst_p1_add_or_double_affine(point, point, a.point); return this; }
-        public P1 dbl()
+        public readonly P1 Dbl()
         { blst_p1_double(point, point); return this; }
 
-        public static P1 generator()
+        public static P1 Generator()
         {
             var ret = new P1(true);
             Marshal.Copy(blst_p1_generator(), ret.point, 0, ret.point.Length);
@@ -716,180 +799,225 @@ public static class Bls
         }
     }
 
-    public static P1 G1() { return P1.generator(); }
+    public static P1 G1() { return P1.Generator(); }
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_aggregated_in_g1([Out] long[] fp12, [In] long[] p);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern ERROR blst_pairing_aggregate_pk_in_g1([In, Out] long[] fp12,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_aggregated_in_g1([Out] long[] fp12, [In] long[] p);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial ERROR blst_pairing_aggregate_pk_in_g1([In, Out] long[] fp12,
                                     [In] long[] pk, [In] long[] sig,
                                     [In] byte[] msg, size_t msg_len,
                                     [In] byte[] aug, size_t aug_len);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern ERROR blst_pairing_mul_n_aggregate_pk_in_g1([In, Out] long[] fp12,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial ERROR blst_pairing_mul_n_aggregate_pk_in_g1([In, Out] long[] fp12,
                                     [In] long[] pk, [In] long[] sig,
                                     [In] byte[] scalar, size_t nbits,
                                     [In] byte[] msg, size_t msg_len,
                                     [In] byte[] aug, size_t aug_len);
 
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern size_t blst_p2_affine_sizeof();
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial size_t blst_p2_affine_sizeof();
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern ERROR blst_p2_deserialize([Out] long[] ret, [In] byte[] inp);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_p2_affine_serialize([Out] byte[] ret, [In] long[] inp);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_p2_affine_compress([Out] byte[] ret, [In] long[] inp);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial ERROR blst_p2_deserialize([Out] long[] ret, [In] byte[] inp);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p2_affine_serialize([Out] byte[] ret, [In] long[] inp);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p2_affine_compress([Out] byte[] ret, [In] long[] inp);
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_p2_to_affine([Out] long[] ret, [In] long[] inp);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_p2_affine_on_curve([In] long[] point);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_p2_affine_in_g2([In] long[] point);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_p2_affine_is_inf([In] long[] point);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_p2_affine_is_equal([In] long[] a, [In] long[] b);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p2_to_affine([Out] long[] ret, [In] long[] inp);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_p2_affine_on_curve([In] long[] point);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_p2_affine_in_g2([In] long[] point);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_p2_affine_is_inf([In] long[] point);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_p2_affine_is_equal([In] long[] a, [In] long[] b);
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern IntPtr blst_p2_generator();
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial IntPtr blst_p2_generator();
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern ERROR blst_core_verify_pk_in_g1([In] long[] pk, [In] long[] sig,
-                                                  bool hash_or_encode,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial ERROR blst_core_verify_pk_in_g1([In] long[] pk, [In] long[] sig,
+                                                  [MarshalAs(UnmanagedType.Bool)] bool hash_or_encode,
                                                   [In] byte[] msg, size_t msg_len,
                                                   [In] byte[] dst, size_t dst_len,
                                                   [In] byte[] aug, size_t aug_len);
 
-    public struct P2_Affine
+    public readonly struct P2Affine
     {
         internal readonly long[] point;
 
         private static readonly int sz = (int)blst_p2_affine_sizeof() / sizeof(long);
 
-        private P2_Affine(bool _) { point = new long[sz]; }
-        private P2_Affine(in P2_Affine p) { point = (long[])p.point.Clone(); }
+        private P2Affine(bool _) { point = new long[sz]; }
+        private P2Affine(in P2Affine p) { point = (long[])p.point.Clone(); }
 
-        public P2_Affine(in byte[] inp) : this(true)
+        public P2Affine(in byte[] inp) : this(true)
         {
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P2_COMPRESSED_SZ
                                                           : 2 * P2_COMPRESSED_SZ))
-                throw new Exception(ERROR.BAD_ENCODING);
+            {
+                throw new Exception(ERROR.BADENCODING);
+            }
+
             ERROR err = blst_p2_deserialize(point, inp);
             if (err != ERROR.SUCCESS)
+            {
                 throw new Exception(err);
+            }
         }
-        public P2_Affine(in P2 jacobian) : this(true)
+        public P2Affine(in P2 jacobian) : this(true)
         { blst_p2_to_affine(point, jacobian.point); }
 
-        public P2_Affine dup() { return new P2_Affine(this); }
-        public P2 to_jacobian() { return new P2(this); }
-        public byte[] serialize()
+        public readonly P2Affine Dup() => new(this);
+        public readonly P2 ToJacobian() => new(this);
+        public readonly byte[] Serialize()
         {
             byte[] ret = new byte[2 * P2_COMPRESSED_SZ];
             blst_p2_affine_serialize(ret, point);
             return ret;
         }
-        public byte[] compress()
+        public readonly byte[] Compress()
         {
             byte[] ret = new byte[P2_COMPRESSED_SZ];
             blst_p2_affine_compress(ret, point);
             return ret;
         }
 
-        public bool on_curve() { return blst_p2_affine_on_curve(point); }
-        public bool in_group() { return blst_p2_affine_in_g2(point); }
-        public bool is_inf() { return blst_p2_affine_is_inf(point); }
-        public bool is_equal(in P2_Affine p)
-        { return blst_p2_affine_is_equal(point, p.point); }
+        public readonly bool OnCurve()
+            => blst_p2_affine_on_curve(point);
+        public readonly bool InGroup()
+            => blst_p2_affine_in_g2(point);
+        public readonly bool IsInf()
+            => blst_p2_affine_is_inf(point);
+        public readonly bool IsEqual(in P2Affine p)
+            => blst_p2_affine_is_equal(point, p.point);
 
-        ERROR core_verify(P1_Affine pk, bool hash_or_encode,
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-                          byte[] msg, string DST = "", byte[] aug = null)
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
-        {
-            byte[] dst = Encoding.UTF8.GetBytes(DST);
-            return blst_core_verify_pk_in_g1(pk.point, point,
-                                             hash_or_encode,
-                                             msg, (size_t)msg.Length,
-                                             dst, (size_t)dst.Length,
-                                             aug, (size_t)(aug != null ? aug.Length : 0));
-        }
+//         readonly ERROR core_verify(P1Affine pk, bool hash_or_encode,
+// #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+//                           byte[] msg, string DST = "", byte[] aug = null)
+// #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+//         {
+//             byte[] dst = Encoding.UTF8.GetBytes(DST);
+//             return blst_core_verify_pk_in_g1(pk.point, point,
+//                                              hash_or_encode,
+//                                              msg, (size_t)msg.Length,
+//                                              dst, (size_t)dst.Length,
+//                                              aug, (size_t)(aug != null ? aug.Length : 0));
+//         }
 
-        public static P2_Affine generator()
+        public static P2Affine Generator()
         {
-            var ret = new P2_Affine(true);
+            var ret = new P2Affine(true);
             Marshal.Copy(blst_p2_generator(), ret.point, 0, ret.point.Length);
             return ret;
         }
     }
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern size_t blst_p2_sizeof();
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_p2_serialize([Out] byte[] ret, [In] long[] inp);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_p2_compress([Out] byte[] ret, [In] long[] inp);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_p2_from_affine([Out] long[] ret, [In] long[] inp);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial size_t blst_p2_sizeof();
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p2_serialize([Out] byte[] ret, [In] long[] inp);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p2_compress([Out] byte[] ret, [In] long[] inp);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p2_from_affine([Out] long[] ret, [In] long[] inp);
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_p2_on_curve([In] long[] point);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_p2_in_g2([In] long[] point);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_p2_is_inf([In] long[] point);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_p2_is_equal([In] long[] a, [In] long[] b);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_p2_on_curve([In] long[] point);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_p2_in_g2([In] long[] point);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_p2_is_inf([In] long[] point);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_p2_is_equal([In] long[] a, [In] long[] b);
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_sk_to_pk_in_g2([Out] long[] ret, [In] byte[] SK);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_map_to_g2([Out] long[] ret, [In] long[] u, [In] long[] v);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern
-    void blst_encode_to_g2([Out] long[] ret, [In] byte[] msg, size_t msg_len,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_sk_to_pk_in_g2([Out] long[] ret, [In] byte[] SK);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_map_to_g2([Out] long[] ret, [In] long[] u, [In] long[] v);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_encode_to_g2([Out] long[] ret, [In] byte[] msg, size_t msg_len,
                                              [In] byte[] dst, size_t dst_len,
                                              [In] byte[] aug, size_t aug_len);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern
-    void blst_hash_to_g2([Out] long[] ret, [In] byte[] msg, size_t msg_len,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_hash_to_g2([Out] long[] ret, [In] byte[] msg, size_t msg_len,
                                            [In] byte[] dst, size_t dst_len,
                                            [In] byte[] aug, size_t aug_len);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern
-    void blst_sign_pk_in_g1([Out] long[] ret, [In] long[] hash, [In] byte[] SK);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_sign_pk_in_g1([Out] long[] ret, [In] long[] hash, [In] byte[] SK);
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern
-    void blst_p2_mult([Out] long[] ret, [In] long[] a,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p2_mult([Out] long[] ret, [In] long[] a,
                                         [In] byte[] scalar, size_t nbits);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_p2_cneg([Out] long[] ret, bool cbit);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern
-    void blst_p2_add_or_double([Out] long[] ret, [In] long[] a, [In] long[] b);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern
-    void blst_p2_add_or_double_affine([Out] long[] ret, [In] long[] a,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p2_cneg([Out] long[] ret, [MarshalAs(UnmanagedType.Bool)] bool cbit);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p2_add_or_double([Out] long[] ret, [In] long[] a, [In] long[] b);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p2_add_or_double_affine([Out] long[] ret, [In] long[] a,
                                                         [In] long[] b);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_p2_double([Out] long[] ret, [In] long[] a);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern size_t blst_p2s_mult_pippenger_scratch_sizeof(size_t npoints);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_p2_double([Out] long[] ret, [In] long[] a);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial size_t blst_p2s_mult_pippenger_scratch_sizeof(size_t npoints);
     // void blst_p2s_mult_pippenger(blst_p2 *ret, const blst_p2_affine *const points[],
     //                          size_t npoints, const byte *const scalars[],
     //                          size_t nbits, limb_t *scratch);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    unsafe static extern void blst_p2s_mult_pippenger([Out] long[] ret, long** points,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static unsafe partial void blst_p2s_mult_pippenger([Out] long[] ret, long** points,
         size_t npoints, byte** scalars, size_t nbits, long* scratch);
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    unsafe static extern void blst_p2s_to_affine([Out] long[] dst, long** points, size_t npoints);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static unsafe partial void blst_p2s_to_affine([Out] long[] dst, long** points, size_t npoints);
 
     public struct P2
     {
@@ -897,11 +1025,10 @@ public static class Bls
 
         private static readonly int sz = (int)blst_p2_sizeof() / sizeof(long);
 
-        //public P2()           { point = new long[sz]; }
         private P2(bool _) { point = new long[sz]; }
         private P2(in P2 p) { point = (long[])p.point.Clone(); }
-        private long[] self()
-        { if (point == null) { point = new long[sz]; } return point; }
+        private long[] Self()
+        { point ??= new long[sz]; return point; }
 
         public P2(in SecretKey sk) : this(true)
         { blst_sk_to_pk_in_g2(point, sk.key); }
@@ -910,7 +1037,9 @@ public static class Bls
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P2_COMPRESSED_SZ
                                                           : 2 * P2_COMPRESSED_SZ))
-                throw new Exception(ERROR.BAD_ENCODING);
+            {
+                throw new Exception(ERROR.BADENCODING);
+            }
 
             if (len == 2 * P2_COMPRESSED_SZ)
             {
@@ -935,31 +1064,35 @@ public static class Bls
 
             blst_p2_from_affine(point, point);
         }
-        public P2(in P2_Affine affine) : this(true)
+        public P2(in P2Affine affine) : this(true)
         { blst_p2_from_affine(point, affine.point); }
 
-        public P2 dup() { return new P2(this); }
-        public P2_Affine to_affine() { return new P2_Affine(this); }
-        public byte[] serialize()
+        public readonly P2 Dup() => new(this);
+        public readonly P2Affine ToAffine() => new(this);
+        public readonly byte[] Serialize()
         {
             byte[] ret = new byte[2 * P2_COMPRESSED_SZ];
             blst_p2_serialize(ret, point);
             return ret;
         }
-        public byte[] compress()
+        public readonly byte[] Compress()
         {
             byte[] ret = new byte[P2_COMPRESSED_SZ];
             blst_p2_compress(ret, point);
             return ret;
         }
 
-        public bool on_curve() { return blst_p2_on_curve(point); }
-        public bool in_group() { return blst_p2_in_g2(point); }
-        public bool is_inf() { return blst_p2_is_inf(point); }
-        public bool is_equal(P2 p) { return blst_p2_is_equal(point, p.point); }
+        public readonly bool OnCurve()
+            => blst_p2_on_curve(point);
+        public readonly bool InGroup()
+            => blst_p2_in_g2(point);
+        public readonly bool IsInf()
+            => blst_p2_is_inf(point);
+        public readonly bool IsEqual(P2 p)
+            => blst_p2_is_equal(point, p.point);
 
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-        public unsafe P2 map_to(in byte[] c0, in byte[] c1)
+        public unsafe P2 MapTo(in byte[] c0, in byte[] c1)
         {
             long[] u0 = new long[6];
             long[] u1 = new long[6];
@@ -967,53 +1100,57 @@ public static class Bls
             blst_fp_from_bendian(u0, c0);
             blst_fp_from_bendian(u1, c1);
 
-            long[] u = u0.Concat(u1).ToArray();
+            long[] u = [.. u0, .. u1];
 
-            blst_map_to_g2(self(), u, null);
+            blst_map_to_g2(Self(), u, null);
             return this;
         }
-        public P2 hash_to(in byte[] msg, string DST = "", in byte[] aug = null)
+        public P2 HashTo(in byte[] msg, string DST = "", in byte[] aug = null)
         {
             byte[] dst = Encoding.UTF8.GetBytes(DST);
-            blst_hash_to_g2(self(), msg, (size_t)msg.Length,
+            blst_hash_to_g2(Self(), msg, (size_t)msg.Length,
                                     dst, (size_t)dst.Length,
                                     aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
-        public P2 encode_to(in byte[] msg, string DST = "", in byte[] aug = null)
+        public P2 EncodeTo(in byte[] msg, string DST = "", in byte[] aug = null)
         {
             byte[] dst = Encoding.UTF8.GetBytes(DST);
-            blst_encode_to_g2(self(), msg, (size_t)msg.Length,
+            blst_encode_to_g2(Self(), msg, (size_t)msg.Length,
                                       dst, (size_t)dst.Length,
                                       aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
 #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 
-        public P2 sign_with(in SecretKey sk)
+        public readonly P2 SignWith(in SecretKey sk)
         { blst_sign_pk_in_g1(point, point, sk.key); return this; }
-        public P2 sign_with(in Scalar scalar)
+        public readonly P2 SignWith(in Scalar scalar)
         { blst_sign_pk_in_g1(point, point, scalar.val); return this; }
 
-        public void aggregate(in P2_Affine inp)
+        public readonly void Aggregate(in P2Affine inp)
         {
             if (blst_p2_affine_in_g2(inp.point))
+            {
                 blst_p2_add_or_double_affine(point, point, inp.point);
+            }
             else
-                throw new Exception(ERROR.POINT_NOT_IN_GROUP);
+            {
+                throw new Exception(ERROR.POINTNOTINGROUP);
+            }
         }
 
-        public P2 mult(in byte[] scalar)
+        public readonly P2 Mult(in byte[] scalar)
         {
             blst_p2_mult(point, point, scalar, (size_t)(scalar.Length * 8));
             return this;
         }
-        public P2 mult(in Scalar scalar)
+        public readonly P2 Mult(in Scalar scalar)
         {
-            blst_p2_mult(point, point, scalar.val, (size_t)255);
+            blst_p2_mult(point, point, scalar.val, 255);
             return this;
         }
-        public P2 mult(in BigInteger scalar)
+        public readonly P2 Mult(in BigInteger scalar)
         {
             byte[] val;
             if (scalar.Sign < 0)
@@ -1030,12 +1167,12 @@ public static class Bls
             blst_p2_mult(point, point, val, (size_t)(len * 8));
             return this;
         }
-        private unsafe P2 multi_mult_raw_affines(long* rawAffinesPtr, in Scalar[] scalars, int npoints)
+        private unsafe P2 MultiMultRawAffines(long* rawAffinesPtr, in Scalar[] scalars, int npoints)
         {
             byte[] rawScalars = new byte[((size_t)npoints * 32)];
             for (int i = 0; i < npoints; i++)
             {
-                byte[] tmp = scalars[i].to_lendian();
+                byte[] tmp = scalars[i].ToLendian();
                 for (int j = 0; j < 32; j++)
                 {
                     rawScalars[(i * 32) + j] = tmp[j];
@@ -1053,12 +1190,12 @@ public static class Bls
                 fixed (long** rawAffinesWrapperPtr = rawAffinesWrapper)
                 fixed (byte** rawScalarsWrapperPtr = rawScalarsWrapper)
                 fixed (long* scratchPtr = scratch)
-                    blst_p2s_mult_pippenger(self(), rawAffinesWrapperPtr, (size_t)npoints, rawScalarsWrapperPtr, 256, scratchPtr);
+                    blst_p2s_mult_pippenger(Self(), rawAffinesWrapperPtr, (size_t)npoints, rawScalarsWrapperPtr, 256, scratchPtr);
             }
             return this;
         }
 
-        public unsafe P2 multi_mult(in P2[] points, in Scalar[] scalars)
+        public unsafe P2 MultiMult(in P2[] points, in Scalar[] scalars)
         {
             long[] rawPoints = new long[points.Length * 36];
             long[] rawAffines = new long[points.Length * 24];
@@ -1067,7 +1204,7 @@ public static class Bls
             foreach (P2 point in points)
             {
                 // filter out zero elements
-                if (point.is_inf())
+                if (point.IsInf())
                 {
                     continue;
                 }
@@ -1089,18 +1226,18 @@ public static class Bls
             }
 
             fixed (long* rawAffinesPtr = rawAffines)
-                return multi_mult_raw_affines(rawAffinesPtr, scalars, i);
+                return MultiMultRawAffines(rawAffinesPtr, scalars, i);
         }
-        public P2 cneg(bool flag) { blst_p2_cneg(point, flag); return this; }
-        public P2 neg() { blst_p2_cneg(point, true); return this; }
-        public P2 add(in P2 a)
+        public readonly P2 Cneg(bool flag) { blst_p2_cneg(point, flag); return this; }
+        public readonly P2 Neg() { blst_p2_cneg(point, true); return this; }
+        public readonly P2 Add(in P2 a)
         { blst_p2_add_or_double(point, point, a.point); return this; }
-        public P2 add(in P2_Affine a)
+        public readonly P2 Add(in P2Affine a)
         { blst_p2_add_or_double_affine(point, point, a.point); return this; }
-        public P2 dbl()
+        public readonly P2 Dbl()
         { blst_p2_double(point, point); return this; }
 
-        public static P2 generator()
+        public static P2 Generator()
         {
             var ret = new P2(true);
             Marshal.Copy(blst_p2_generator(), ret.point, 0, ret.point.Length);
@@ -1108,49 +1245,67 @@ public static class Bls
         }
     }
 
-    public static P2 G2() { return P2.generator(); }
+    public static P2 G2() => P2.Generator();
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_aggregated_in_g2([Out] long[] fp12, [In] long[] p);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern ERROR blst_pairing_aggregate_pk_in_g2([In, Out] long[] fp12,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_aggregated_in_g2([Out] long[] fp12, [In] long[] p);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial ERROR blst_pairing_aggregate_pk_in_g2([In, Out] long[] fp12,
                                     [In] long[] pk, [In] long[] sig,
                                     [In] byte[] msg, size_t msg_len,
                                     [In] byte[] aug, size_t aug_len);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern ERROR blst_pairing_mul_n_aggregate_pk_in_g2([In, Out] long[] fp12,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial ERROR blst_pairing_mul_n_aggregate_pk_in_g2([In, Out] long[] fp12,
                                     [In] long[] pk, [In] long[] sig,
                                     [In] byte[] scalar, size_t nbits,
                                     [In] byte[] msg, size_t msg_len,
                                     [In] byte[] aug, size_t aug_len);
 
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern size_t blst_fp12_sizeof();
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_miller_loop([Out] long[] fp12, [In] long[] q,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial size_t blst_fp12_sizeof();
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_miller_loop([Out] long[] fp12, [In] long[] q,
                                                            [In] long[] p);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_fp12_is_one([In] long[] fp12);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_fp12_is_equal([In] long[] a, [In] long[] b);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_fp12_sqr([Out] long[] ret, [In] long[] a);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_fp12_mul([Out] long[] ret, [In] long[] a,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_fp12_is_one([In] long[] fp12);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_fp12_is_equal([In] long[] a, [In] long[] b);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_fp12_sqr([Out] long[] ret, [In] long[] a);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_fp12_mul([Out] long[] ret, [In] long[] a,
                                                        [In] long[] b);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_final_exp([Out] long[] ret, [In] long[] a);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_fp12_finalverify([In] long[] a, [In] long[] b);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern IntPtr blst_fp12_one();
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_fp12_in_group([In] long[] a);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_bendian_from_fp12([Out] byte[] ret, [In] long[] a);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_final_exp([Out] long[] ret, [In] long[] a);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_fp12_finalverify([In] long[] a, [In] long[] b);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial IntPtr blst_fp12_one();
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_fp12_in_group([In] long[] a);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_bendian_from_fp12([Out] byte[] ret, [In] long[] a);
 
-    public struct PT
+    public readonly struct PT
     {
         internal readonly long[] fp12;
 
@@ -1159,43 +1314,45 @@ public static class Bls
         internal PT(bool _) { fp12 = new long[sz]; }
         private PT(in PT orig) { fp12 = (long[])orig.fp12.Clone(); }
 
-        public PT(in P1_Affine p) : this(true)
+        public PT(in P1Affine p) : this(true)
         { blst_aggregated_in_g1(fp12, p.point); }
         public PT(in P1 p) : this(true)
-        { blst_aggregated_in_g1(fp12, (new P1_Affine(p)).point); }
-        public PT(in P2_Affine q) : this(true)
+        { blst_aggregated_in_g1(fp12, new P1Affine(p).point); }
+        public PT(in P2Affine q) : this(true)
         { blst_aggregated_in_g2(fp12, q.point); }
         public PT(in P2 q) : this(true)
-        { blst_aggregated_in_g2(fp12, (new P2_Affine(q)).point); }
-        public PT(in P2_Affine q, in P1_Affine p) : this(true)
+        { blst_aggregated_in_g2(fp12, new P2Affine(q).point); }
+        public PT(in P2Affine q, in P1Affine p) : this(true)
         { blst_miller_loop(fp12, q.point, p.point); }
-        public PT(in P1_Affine p, in P2_Affine q) : this(q, p) { }
+        public PT(in P1Affine p, in P2Affine q) : this(q, p) { }
         public PT(in P2 q, in P1 p) : this(true)
         {
-            blst_miller_loop(fp12, (new P2_Affine(q)).point,
-                                   (new P1_Affine(p)).point);
+            blst_miller_loop(fp12, new P2Affine(q).point,
+                                   new P1Affine(p).point);
         }
         public PT(in P1 p, in P2 q) : this(q, p) { }
 
-        public PT dup() { return new PT(this); }
-        public bool is_one() { return blst_fp12_is_one(fp12); }
-        public bool is_equal(PT p)
-        { return blst_fp12_is_equal(fp12, p.fp12); }
-        public PT sqr() { blst_fp12_sqr(fp12, fp12); return this; }
-        public PT mul(in PT p) { blst_fp12_mul(fp12, fp12, p.fp12); return this; }
-        public PT final_exp() { blst_final_exp(fp12, fp12); return this; }
-        public bool in_group() { return blst_fp12_in_group(fp12); }
-        public byte[] to_bendian()
+        public readonly PT Dup() => new(this);
+        public readonly bool IsOne()
+            => blst_fp12_is_one(fp12);
+        public readonly bool IsEqual(PT p)
+            => blst_fp12_is_equal(fp12, p.fp12);
+        public readonly PT Sqr() { blst_fp12_sqr(fp12, fp12); return this; }
+        public readonly PT Mul(in PT p) { blst_fp12_mul(fp12, fp12, p.fp12); return this; }
+        public readonly PT FinalExp() { blst_final_exp(fp12, fp12); return this; }
+        public readonly bool InGroup()
+            => blst_fp12_in_group(fp12);
+        public readonly byte[] ToBendian()
         {
             byte[] ret = new byte[12 * P1_COMPRESSED_SZ];
             blst_bendian_from_fp12(ret, fp12);
             return ret;
         }
 
-        public static bool finalverify(in PT gt1, in PT gt2)
+        public static bool Finalverify(in PT gt1, in PT gt2)
         { return blst_fp12_finalverify(gt1.fp12, gt2.fp12); }
 
-        public static PT one()
+        public static PT One()
         {
             var ret = new PT(true);
             Marshal.Copy(blst_fp12_one(), ret.fp12, 0, ret.fp12.Length);
@@ -1203,32 +1360,38 @@ public static class Bls
         }
     }
 
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern size_t blst_pairing_sizeof();
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern
-    void blst_pairing_init([In, Out] long[] ctx, bool hash_or_encode,
-                                                 [In] ref long dst, size_t dst_len);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern void blst_pairing_commit([In, Out] long[] ctx);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern ERROR blst_pairing_merge([In, Out] long[] ctx, [In] long[] ctx1);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern bool blst_pairing_finalverify([In] long[] ctx, [In] long[] sig);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern
-    void blst_pairing_raw_aggregate([In, Out] long[] ctx, [In] long[] q,
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial size_t blst_pairing_sizeof();
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_pairing_init([In, Out] long[] ctx, [MarshalAs(UnmanagedType.Bool)] bool hash_or_encode,
+                                                 ref long dst, size_t dst_len);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_pairing_commit([In, Out] long[] ctx);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial ERROR blst_pairing_merge([In, Out] long[] ctx, [In] long[] ctx1);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static private partial bool blst_pairing_finalverify([In] long[] ctx, [In] long[] sig);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_pairing_raw_aggregate([In, Out] long[] ctx, [In] long[] q,
                                                           [In] long[] p);
-    [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-    static extern IntPtr blst_pairing_as_fp12([In] long[] ctx);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial IntPtr blst_pairing_as_fp12([In] long[] ctx);
 
-    public struct Pairing
+    public readonly struct Pairing
     {
         private readonly long[] ctx;
 
         private static readonly int sz = (int)blst_pairing_sizeof() / sizeof(long);
 
-        public Pairing(bool hash_or_encode = false, string DST = "")
+        public Pairing(bool hashOrEncode = false, string DST = "")
         {
             byte[] dst = Encoding.UTF8.GetBytes(DST);
             int dst_len = dst.Length;
@@ -1240,12 +1403,12 @@ public static class Bls
             for (int i = 0; i < add_len; i++)
                 ctx[sz + i] = BitConverter.ToInt64(dst, i * sizeof(long));
 
-            GCHandle h = GCHandle.Alloc(ctx, GCHandleType.Pinned);
-            blst_pairing_init(ctx, hash_or_encode, ref ctx[sz], (size_t)dst_len);
+            var h = GCHandle.Alloc(ctx, GCHandleType.Pinned);
+            blst_pairing_init(ctx, hashOrEncode, ref ctx[sz], (size_t)dst_len);
             h.Free();
         }
 
-        public ERROR aggregate(in P1_Affine pk, in P2_Affine? sig,
+        public readonly ERROR Aggregate(in P1Affine pk, in P2Affine? sig,
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
                                              byte[] msg, byte[] aug = null)
 #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
@@ -1257,7 +1420,7 @@ public static class Bls
                                     aug, (size_t)(aug != null ? aug.Length : 0));
 #pragma warning restore CS8604 // Possible null reference argument.
         }
-        public ERROR aggregate(in P2_Affine pk, in P1_Affine? sig,
+        public readonly ERROR Aggregate(in P2Affine pk, in P1Affine? sig,
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
                                              byte[] msg, byte[] aug = null)
 #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
@@ -1269,7 +1432,7 @@ public static class Bls
                                     aug, (size_t)(aug != null ? aug.Length : 0));
 #pragma warning restore CS8604 // Possible null reference argument.
         }
-        public ERROR mul_n_aggregate(in P2_Affine pk, in P1_Affine sig,
+        public readonly ERROR MulNAggregate(in P2Affine pk, in P1Affine sig,
                                                    byte[] scalar, int nbits,
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
                                                    byte[] msg, byte[] aug = null)
@@ -1280,7 +1443,7 @@ public static class Bls
                                     msg, (size_t)msg.Length,
                                     aug, (size_t)(aug != null ? aug.Length : 0));
         }
-        public ERROR mul_n_aggregate(in P1_Affine pk, in P2_Affine sig,
+        public readonly ERROR MulNAggregate(in P1Affine pk, in P2Affine sig,
                                                    byte[] scalar, int nbits,
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
                                                    byte[] msg, byte[] aug = null)
@@ -1292,30 +1455,32 @@ public static class Bls
                                     aug, (size_t)(aug != null ? aug.Length : 0));
         }
 
-        public void commit() { blst_pairing_commit(ctx); }
-        public void merge(in Pairing a)
+        public readonly void Commit() { blst_pairing_commit(ctx); }
+        public readonly void Merge(in Pairing a)
         {
-            var err = blst_pairing_merge(ctx, a.ctx);
+            ERROR err = blst_pairing_merge(ctx, a.ctx);
             if (err != ERROR.SUCCESS)
+            {
                 throw new Exception(err);
+            }
         }
-        public bool finalverify(in PT sig = new PT())
+        public readonly bool Finalverify(in PT sig = new PT())
 #pragma warning disable CS8604 // Possible null reference argument.
         { return blst_pairing_finalverify(ctx, sig.fp12); }
 #pragma warning restore CS8604 // Possible null reference argument.
 
-        public void raw_aggregate(in P2_Affine q, in P1_Affine p)
+        public readonly void RawAggregate(in P2Affine q, in P1Affine p)
         { blst_pairing_raw_aggregate(ctx, q.point, p.point); }
-        public void raw_aggregate(in P1_Affine p, in P2_Affine q)
-        { raw_aggregate(q, p); }
-        public void raw_aggregate(in P2 q, in P1 p)
+        public void RawAggregate(in P1Affine p, in P2Affine q)
+        { RawAggregate(q, p); }
+        public readonly void RawAggregate(in P2 q, in P1 p)
         {
-            blst_pairing_raw_aggregate(ctx, new P2_Affine(q).point,
-                                            new P1_Affine(p).point);
+            blst_pairing_raw_aggregate(ctx, new P2Affine(q).point,
+                                            new P1Affine(p).point);
         }
-        public void raw_aggregate(in P1 p, in P2 q)
-        { raw_aggregate(q, p); }
-        public PT as_fp12()
+        public void RawAggregate(in P1 p, in P2 q)
+            => RawAggregate(q, p);
+        public readonly PT AsFp12()
         {
             var ret = new PT(true);
             GCHandle h = GCHandle.Alloc(ctx, GCHandleType.Pinned);
