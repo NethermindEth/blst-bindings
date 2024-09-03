@@ -96,56 +96,56 @@ public static partial class Bls
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_keygen([Out] byte[] key, [In] byte[] IKM, size_t IKM_len,
-                                       [In] byte[] info, size_t info_len);
+    static private partial void blst_keygen(Span<byte> key, ReadOnlySpan<byte> IKM, size_t IKM_len,
+                                       ReadOnlySpan<byte> info, size_t info_len);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_keygen_v3([Out] byte[] key, [In] byte[] IKM, size_t IKM_len,
-                                          [In] byte[] info, size_t info_len);
+    static private partial void blst_keygen_v3(Span<byte> key, ReadOnlySpan<byte> IKM, size_t IKM_len,
+                                          ReadOnlySpan<byte> info, size_t info_len);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_keygen_v4_5([Out] byte[] key, [In] byte[] IKM, size_t IKM_len,
-                                            [In] byte[] salt, size_t salt_len,
-                                            [In] byte[] info, size_t info_len);
+    static private partial void blst_keygen_v4_5(Span<byte> key, ReadOnlySpan<byte> IKM, size_t IKM_len,
+                                            ReadOnlySpan<byte> salt, size_t salt_len,
+                                            ReadOnlySpan<byte> info, size_t info_len);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_keygen_v5([Out] byte[] key, [In] byte[] IKM, size_t IKM_len,
-                                          [In] byte[] salt, size_t salt_len,
-                                          [In] byte[] info, size_t info_len);
+    static private partial void blst_keygen_v5(Span<byte> key, ReadOnlySpan<byte> IKM, size_t IKM_len,
+                                          ReadOnlySpan<byte> salt, size_t salt_len,
+                                          ReadOnlySpan<byte> info, size_t info_len);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_derive_master_eip2333([Out] byte[] key,
-                                                  [In] byte[] IKM, size_t IKM_len);
+    static private partial void blst_derive_master_eip2333(Span<byte> key,
+                                                  ReadOnlySpan<byte> IKM, size_t IKM_len);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_derive_child_eip2333([Out] byte[] key,
-                                                 [In] byte[] master, uint child_index);
+    static private partial void blst_derive_child_eip2333(Span<byte> key,
+                                                 ReadOnlySpan<byte> master, uint child_index);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_scalar_from_bendian([Out] byte[] ret, [In] byte[] key);
+    static private partial void blst_scalar_from_bendian(Span<byte> ret, ReadOnlySpan<byte> key);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_bendian_from_scalar([Out] byte[] ret, [In] byte[] key);
+    static private partial void blst_bendian_from_scalar(Span<byte> ret, ReadOnlySpan<byte> key);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_sk_check([In] byte[] key);
+    static private partial bool blst_sk_check(ReadOnlySpan<byte> key);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_scalar_from_lendian([Out] byte[] key, [In] byte[] inp);
+    static private partial void blst_scalar_from_lendian(Span<byte> key, ReadOnlySpan<byte> inp);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_lendian_from_scalar([Out] byte[] key, [In] byte[] inp);
+    static private partial void blst_lendian_from_scalar(Span<byte> key, ReadOnlySpan<byte> inp);
 
-    public struct SecretKey
+    public ref struct SecretKey
     {
-        internal byte[] key;
+        internal Span<byte> key;
 
-        public SecretKey(in byte[] IKM, string info)
+        public SecretKey(ReadOnlySpan<byte> IKM, string info)
         { key = new byte[32]; Keygen(IKM, info); }
-        public SecretKey(in byte[] inp, ByteOrder order = ByteOrder.BigEndian)
+        public SecretKey(ReadOnlySpan<byte> inp, ByteOrder order = ByteOrder.BigEndian)
         {
             key = new byte[32];
             switch (order)
@@ -154,58 +154,50 @@ public static partial class Bls
                 case ByteOrder.LittleEndian: FromLendian(inp); break;
             }
         }
-        public void Keygen(in byte[] IKM, string info = "")
+        public readonly void Keygen(ReadOnlySpan<byte> IKM, string info = "")
         {
-            key ??= new byte[32];
-            byte[] info_bytes = Encoding.UTF8.GetBytes(info);
+            ReadOnlySpan<byte> info_bytes = Encoding.UTF8.GetBytes(info);
             blst_keygen(key, IKM, (size_t)IKM.Length,
                              info_bytes, (size_t)info_bytes.Length);
         }
-        public void KeygenV3(in byte[] IKM, string info = "")
+        public readonly void KeygenV3(ReadOnlySpan<byte> IKM, string info = "")
         {
-            key ??= new byte[32];
-            byte[] info_bytes = Encoding.UTF8.GetBytes(info);
+            ReadOnlySpan<byte> info_bytes = Encoding.UTF8.GetBytes(info);
             blst_keygen_v3(key, IKM, (size_t)IKM.Length,
                                 info_bytes, (size_t)info_bytes.Length);
         }
-        public void KeygenV45(in byte[] IKM, string salt, string info = "")
+        public readonly void KeygenV45(ReadOnlySpan<byte> IKM, string salt, string info = "")
         {
-            key ??= new byte[32];
-            byte[] salt_bytes = Encoding.UTF8.GetBytes(salt);
-            byte[] info_bytes = Encoding.UTF8.GetBytes(info);
+            ReadOnlySpan<byte> salt_bytes = Encoding.UTF8.GetBytes(salt);
+            ReadOnlySpan<byte> info_bytes = Encoding.UTF8.GetBytes(info);
             blst_keygen_v4_5(key, IKM, (size_t)IKM.Length,
                                   salt_bytes, (size_t)salt_bytes.Length,
                                   info_bytes, (size_t)info_bytes.Length);
         }
-        public void KeygenV5(in byte[] IKM, in byte[] salt, string info = "")
+        public readonly void KeygenV5(ReadOnlySpan<byte> IKM, ReadOnlySpan<byte> salt, string info = "")
         {
-            key ??= new byte[32];
-            byte[] info_bytes = Encoding.UTF8.GetBytes(info);
+            ReadOnlySpan<byte> info_bytes = Encoding.UTF8.GetBytes(info);
             blst_keygen_v5(key, IKM, (size_t)IKM.Length,
                                 salt, (size_t)salt.Length,
                                 info_bytes, (size_t)info_bytes.Length);
         }
-        public void KeygenV5(in byte[] IKM, string salt, string info = "")
-        { KeygenV5(IKM, Encoding.UTF8.GetBytes(salt), info); }
-        public void DeriveMasterEip2333(in byte[] IKM)
-        {
-            key ??= new byte[32];
-            blst_derive_master_eip2333(key, IKM, (size_t)IKM.Length);
-        }
-        public SecretKey(in SecretKey master, uint childIndex)
+        public readonly void KeygenV5(ReadOnlySpan<byte> IKM, string salt, string info = "")
+            => KeygenV5(IKM, Encoding.UTF8.GetBytes(salt), info);
+        public readonly void DeriveMasterEip2333(ReadOnlySpan<byte> IKM)
+            => blst_derive_master_eip2333(key, IKM, (size_t)IKM.Length);
+        public SecretKey(SecretKey master, uint childIndex)
         {
             key = new byte[32];
             blst_derive_child_eip2333(key, master.key, childIndex);
         }
 
-        public void FromBendian(in byte[] inp)
+        public readonly void FromBendian(ReadOnlySpan<byte> inp)
         {
             if (inp.Length != 32)
             {
                 throw new Exception(ERROR.BADENCODING);
             }
 
-            key ??= new byte[32];
             blst_scalar_from_bendian(key, inp);
 
             if (!blst_sk_check(key))
@@ -213,14 +205,13 @@ public static partial class Bls
                 throw new Exception(ERROR.BADENCODING);
             }
         }
-        public void FromLendian(in byte[] inp)
+        public readonly void FromLendian(ReadOnlySpan<byte> inp)
         {
             if (inp.Length != 32)
             {
                 throw new Exception(ERROR.BADENCODING);
             }
 
-            key ??= new byte[32];
             blst_scalar_from_lendian(key, inp);
 
             if (!blst_sk_check(key))
@@ -229,15 +220,15 @@ public static partial class Bls
             }
         }
 
-        public readonly byte[] ToBendian()
+        public readonly Span<byte> ToBendian()
         {
-            byte[] ret = new byte[32];
+            Span<byte> ret = new byte[32];
             blst_bendian_from_scalar(ret, key);
             return ret;
         }
-        public readonly byte[] ToLendian()
+        public readonly Span<byte> ToLendian()
         {
-            byte[] ret = new byte[32];
+            Span<byte> ret = new byte[32];
             blst_lendian_from_scalar(ret, key);
             return ret;
         }
@@ -245,36 +236,36 @@ public static partial class Bls
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_scalar_from_be_bytes([Out] byte[] ret, [In] byte[] inp,
+    static private partial void blst_scalar_from_be_bytes(Span<byte> ret, ReadOnlySpan<byte> inp,
                                                                    size_t inp_len);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_scalar_from_le_bytes([Out] byte[] ret, [In] byte[] inp,
+    static private partial void blst_scalar_from_le_bytes(Span<byte> ret, ReadOnlySpan<byte> inp,
                                                                    size_t inp_len);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_sk_add_n_check([Out] byte[] ret, [In] byte[] a,
-                                                             [In] byte[] b);
+    static private partial bool blst_sk_add_n_check(Span<byte> ret, ReadOnlySpan<byte> a,
+                                                             ReadOnlySpan<byte> b);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_sk_sub_n_check([Out] byte[] ret, [In] byte[] a,
-                                                             [In] byte[] b);
+    static private partial bool blst_sk_sub_n_check(Span<byte> ret, ReadOnlySpan<byte> a,
+                                                             ReadOnlySpan<byte> b);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_sk_mul_n_check([Out] byte[] ret, [In] byte[] a,
-                                                             [In] byte[] b);
+    static private partial bool blst_sk_mul_n_check(Span<byte> ret, ReadOnlySpan<byte> a,
+                                                             ReadOnlySpan<byte> b);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_sk_inverse([Out] byte[] ret, [In] byte[] a);
+    static private partial void blst_sk_inverse(Span<byte> ret, ReadOnlySpan<byte> a);
 
-    public struct Scalar
+    public ref struct Scalar
     {
-        internal byte[] val;
+        internal Span<byte> val;
 
-        public Scalar(in byte[] inp, ByteOrder order = ByteOrder.BigEndian)
+        public Scalar(ReadOnlySpan<byte> inp, ByteOrder order = ByteOrder.BigEndian)
         {
             val = new byte[32];
             switch (order)
@@ -283,18 +274,16 @@ public static partial class Bls
                 case ByteOrder.LittleEndian: FromLendian(inp); break;
             }
         }
-        private Scalar(in Scalar orig) { val = (byte[])orig.val.Clone(); }
+        private Scalar(Scalar orig) { orig.val.CopyTo(val); }
 
         public readonly Scalar Dup() => new(this);
 
-        public void FromBendian(in byte[] inp)
+        public readonly void FromBendian(ReadOnlySpan<byte> inp)
         {
-            val ??= new byte[32];
             blst_scalar_from_be_bytes(val, inp, (size_t)inp.Length);
         }
-        public void FromLendian(in byte[] inp)
+        public readonly void FromLendian(ReadOnlySpan<byte> inp)
         {
-            val ??= new byte[32];
             blst_scalar_from_le_bytes(val, inp, (size_t)inp.Length);
         }
 
@@ -311,7 +300,7 @@ public static partial class Bls
             return ret;
         }
 
-        public readonly Scalar Add(in SecretKey a)
+        public readonly Scalar Add(SecretKey a)
         {
             if (!blst_sk_add_n_check(val, val, a.key))
             {
@@ -319,7 +308,7 @@ public static partial class Bls
             }
             return this;
         }
-        public readonly Scalar Add(in Scalar a)
+        public readonly Scalar Add(Scalar a)
         {
             if (!blst_sk_add_n_check(val, val, a.val))
             {
@@ -327,7 +316,7 @@ public static partial class Bls
             }
             return this;
         }
-        public readonly Scalar Sub(in Scalar a)
+        public readonly Scalar Sub(Scalar a)
         {
             if (!blst_sk_sub_n_check(val, val, a.val))
             {
@@ -335,7 +324,7 @@ public static partial class Bls
             }
             return this;
         }
-        public readonly Scalar Mul(in Scalar a)
+        public readonly Scalar Mul(Scalar a)
         {
             if (!blst_sk_mul_n_check(val, val, a.val))
             {
@@ -346,13 +335,13 @@ public static partial class Bls
         public readonly Scalar Inverse()
         { blst_sk_inverse(val, val); return this; }
 
-        public static Scalar operator +(in Scalar a, in Scalar b)
+        public static Scalar operator +(Scalar a, Scalar b)
             => a.Dup().Add(b);
-        public static Scalar operator -(in Scalar a, in Scalar b)
+        public static Scalar operator -(Scalar a, Scalar b)
             => a.Dup().Sub(b);
-        public static Scalar operator *(in Scalar a, in Scalar b)
+        public static Scalar operator *(Scalar a, Scalar b)
             => a.Dup().Mul(b);
-        public static Scalar operator /(in Scalar a, in Scalar b)
+        public static Scalar operator /(Scalar a, Scalar b)
             => b.Dup().Inverse().Mul(a);
     }
 
@@ -366,33 +355,33 @@ public static partial class Bls
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial ERROR blst_p1_deserialize([Out] long[] ret, [In] byte[] inp);
+    static private partial ERROR blst_p1_deserialize(Span<long> ret, ReadOnlySpan<byte> inp);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p1_affine_serialize([Out] byte[] ret, [In] long[] inp);
+    static private partial void blst_p1_affine_serialize(Span<byte> ret, ReadOnlySpan<long> inp);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p1_affine_compress([Out] byte[] ret, [In] long[] inp);
+    static private partial void blst_p1_affine_compress(Span<byte> ret, ReadOnlySpan<long> inp);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p1_to_affine([Out] long[] ret, [In] long[] inp);
+    static private partial void blst_p1_to_affine(Span<long> ret, ReadOnlySpan<long> inp);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_p1_affine_on_curve([In] long[] point);
+    static private partial bool blst_p1_affine_on_curve(ReadOnlySpan<long> point);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_p1_affine_in_g1([In] long[] point);
+    static private partial bool blst_p1_affine_in_g1(ReadOnlySpan<long> point);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_p1_affine_is_inf([In] long[] point);
+    static private partial bool blst_p1_affine_is_inf(ReadOnlySpan<long> point);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_p1_affine_is_equal([In] long[] a, [In] long[] b);
+    static private partial bool blst_p1_affine_is_equal(ReadOnlySpan<long> a, ReadOnlySpan<long> b);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
@@ -400,22 +389,24 @@ public static partial class Bls
 
     // [LibraryImport(LibraryName)]
     // [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    // static private partial ERROR blst_core_verify_pk_in_g2([In] long[] pk, [In] long[] sig,
+    // static private partial ERROR blst_core_verify_pk_in_g2(ReadOnlySpan<long> pk, ReadOnlySpan<long> sig,
     //                                               [MarshalAs(UnmanagedType.Bool)] bool hash_or_encode,
-    //                                               [In] byte[] msg, size_t msg_len,
-    //                                               [In] byte[] dst, size_t dst_len,
-    //                                               [In] byte[] aug, size_t aug_len);
+    //                                               ReadOnlySpan<byte> msg, size_t msg_len,
+    //                                               ReadOnlySpan<byte> dst, size_t dst_len,
+    //                                               ReadOnlySpan<byte> aug, size_t aug_len);
 
-    public readonly struct P1Affine
+    public readonly ref struct P1Affine
     {
-        internal readonly long[] point;
+        internal readonly Span<long> point;
 
         private static readonly int sz = (int)blst_p1_affine_sizeof() / sizeof(long);
 
+        private P1Affine(long[] p) { point = p; }
         private P1Affine(bool _) { point = new long[sz]; }
-        private P1Affine(in P1Affine p) { point = (long[])p.point.Clone(); }
+        private P1Affine(P1Affine p)
+            => p.point.CopyTo(point);
 
-        public P1Affine(in byte[] inp) : this(true)
+        public P1Affine(ReadOnlySpan<byte> inp) : this(true)
         {
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P1_COMPRESSED_SZ
@@ -430,11 +421,11 @@ public static partial class Bls
                 throw new Exception(err);
             }
         }
-        public P1Affine(in P1 jacobian) : this(true)
-        { blst_p1_to_affine(point, jacobian.point); }
+        public P1Affine(P1 jacobian) : this(true)
+            => blst_p1_to_affine(point, jacobian.point);
 
-        public P1Affine Dup() { return new P1Affine(this); }
-        public P1 ToJacobian() { return new P1(this); }
+        public P1Affine Dup() => new(this);
+        public P1 ToJacobian() => new(this);
         public byte[] Serialize()
         {
             byte[] ret = new byte[2 * P1_COMPRESSED_SZ];
@@ -454,7 +445,7 @@ public static partial class Bls
             => blst_p1_affine_in_g1(point);
         public bool IsInf()
             => blst_p1_affine_is_inf(point);
-        public bool IsEqual(in P1Affine p)
+        public bool IsEqual(P1Affine p)
             => blst_p1_affine_is_equal(point, p.point);
 
         //         ERROR core_verify(P2_Affine pk, bool hash_or_encode,
@@ -472,16 +463,16 @@ public static partial class Bls
 
         public static P1Affine Generator()
         {
-            var ret = new P1Affine(true);
-            Marshal.Copy(blst_p1_generator(), ret.point, 0, ret.point.Length);
-            return ret;
+            long[] res = new long[sz];
+            Marshal.Copy(blst_p1_generator(), res, 0, sz);
+            return new(res);
         }
     }
 
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_fp_from_bendian([Out] long[] ret, [In] byte[] a);
+    static private partial void blst_fp_from_bendian(Span<long> ret, ReadOnlySpan<byte> a);
 
 
     [LibraryImport(LibraryName)]
@@ -489,68 +480,68 @@ public static partial class Bls
     static private partial size_t blst_p1_sizeof();
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p1_serialize([Out] byte[] ret, [In] long[] inp);
+    static private partial void blst_p1_serialize(Span<byte> ret, ReadOnlySpan<long> inp);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p1_compress([Out] byte[] ret, [In] long[] inp);
+    static private partial void blst_p1_compress(Span<byte> ret, ReadOnlySpan<long> inp);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p1_from_affine([Out] long[] ret, [In] long[] inp);
+    static private partial void blst_p1_from_affine(Span<long> ret, ReadOnlySpan<long> inp);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_p1_on_curve([In] long[] point);
+    static private partial bool blst_p1_on_curve(ReadOnlySpan<long> point);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_p1_in_g1([In] long[] point);
+    static private partial bool blst_p1_in_g1(ReadOnlySpan<long> point);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_p1_is_inf([In] long[] point);
+    static private partial bool blst_p1_is_inf(ReadOnlySpan<long> point);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_p1_is_equal([In] long[] a, [In] long[] b);
+    static private partial bool blst_p1_is_equal(ReadOnlySpan<long> a, ReadOnlySpan<long> b);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_sk_to_pk_in_g1([Out] long[] ret, [In] byte[] SK);
+    static private partial void blst_sk_to_pk_in_g1(Span<long> ret, ReadOnlySpan<byte> SK);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_map_to_g1([Out] long[] ret, [In] long[] u, [In] long[] v);
+    static private partial void blst_map_to_g1(Span<long> ret, ReadOnlySpan<long> u, ReadOnlySpan<long> v);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_encode_to_g1([Out] long[] ret, [In] byte[] msg, size_t msg_len,
-                                             [In] byte[] dst, size_t dst_len,
-                                             [In] byte[] aug, size_t aug_len);
+    static private partial void blst_encode_to_g1(Span<long> ret, ReadOnlySpan<byte> msg, size_t msg_len,
+                                             ReadOnlySpan<byte> dst, size_t dst_len,
+                                             ReadOnlySpan<byte> aug, size_t aug_len);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_hash_to_g1([Out] long[] ret, [In] byte[] msg, size_t msg_len,
-                                           [In] byte[] dst, size_t dst_len,
-                                           [In] byte[] aug, size_t aug_len);
+    static private partial void blst_hash_to_g1(Span<long> ret, ReadOnlySpan<byte> msg, size_t msg_len,
+                                           ReadOnlySpan<byte> dst, size_t dst_len,
+                                           ReadOnlySpan<byte> aug, size_t aug_len);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_sign_pk_in_g2([Out] long[] ret, [In] long[] hash, [In] byte[] SK);
+    static private partial void blst_sign_pk_in_g2(Span<long> ret, ReadOnlySpan<long> hash, ReadOnlySpan<byte> SK);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p1_mult([Out] long[] ret, [In] long[] a,
-                                        [In] byte[] scalar, size_t nbits);
+    static private partial void blst_p1_mult(Span<long> ret, ReadOnlySpan<long> a,
+                                        ReadOnlySpan<byte> scalar, size_t nbits);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p1_cneg([Out] long[] ret, [MarshalAs(UnmanagedType.Bool)] bool cbit);
+    static private partial void blst_p1_cneg(Span<long> ret, [MarshalAs(UnmanagedType.Bool)] bool cbit);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p1_add_or_double([Out] long[] ret, [In] long[] a, [In] long[] b);
+    static private partial void blst_p1_add_or_double(Span<long> ret, ReadOnlySpan<long> a, ReadOnlySpan<long> b);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p1_add_or_double_affine([Out] long[] ret, [In] long[] a,
-                                                        [In] long[] b);
+    static private partial void blst_p1_add_or_double_affine(Span<long> ret, ReadOnlySpan<long> a,
+                                                        ReadOnlySpan<long> b);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p1_double([Out] long[] ret, [In] long[] a);
+    static private partial void blst_p1_double(Span<long> ret, ReadOnlySpan<long> a);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     static private partial size_t blst_p1s_mult_pippenger_scratch_sizeof(size_t npoints);
@@ -559,29 +550,29 @@ public static partial class Bls
     //                          size_t nbits, limb_t *scratch);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static unsafe partial void blst_p1s_mult_pippenger([Out] long[] ret, long** points,
+    static unsafe partial void blst_p1s_mult_pippenger(Span<long> ret, long** points,
         size_t npoints, byte** scalars, size_t nbits, long* scratch);
 
     // void blst_p1s_to_affine(blst_p1_affine dst[], const blst_p1 *const points[],
     //                     size_t npoints);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static unsafe partial void blst_p1s_to_affine([Out] long[] dst, long** points, size_t npoints);
+    static unsafe partial void blst_p1s_to_affine(Span<long> dst, long** points, size_t npoints);
 
-    public struct P1
+    public ref struct P1
     {
-        internal long[] point;
+        internal Span<long> point;
 
         private static readonly int sz = (int)blst_p1_sizeof() / sizeof(long);
 
+        private P1(long[] p) { point = p; }
         private P1(bool _) { point = new long[sz]; }
-        private P1(in P1 p) { point = (long[])p.point.Clone(); }
-        private long[] Self()
-        { point ??= new long[sz]; return point; }
+        private P1(P1 p) { p.point.CopyTo(point); }
+        private readonly Span<long> Self() => point;
 
-        public P1(in SecretKey sk) : this(true)
+        public P1(SecretKey sk) : this(true)
         { blst_sk_to_pk_in_g1(point, sk.key); }
-        public P1(in byte[] inp) : this(true)
+        public P1(ReadOnlySpan<byte> inp) : this(true)
         {
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P1_COMPRESSED_SZ
@@ -595,7 +586,7 @@ public static partial class Bls
                 blst_fp_from_bendian(point, inp[..48]);
                 long[] tmp = new long[6];
                 blst_fp_from_bendian(tmp, inp[48..]);
-                tmp.CopyTo(point.AsSpan()[6..]);
+                tmp.CopyTo(point[6..]);
             }
             else
             {
@@ -606,7 +597,7 @@ public static partial class Bls
 
             blst_p1_from_affine(point, point);
         }
-        public P1(in P1Affine affine) : this(true)
+        public P1(P1Affine affine) : this(true)
         { blst_p1_from_affine(point, affine.point); }
 
         public readonly P1 Dup() => new(this);
@@ -630,18 +621,17 @@ public static partial class Bls
             => blst_p1_in_g1(point);
         public readonly bool IsInf()
             => blst_p1_is_inf(point);
-        public readonly bool IsEqual(in P1 p)
+        public readonly bool IsEqual(P1 p)
             => blst_p1_is_equal(point, p.point);
 
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-        public P1 MapTo(in byte[] fp)
+        public readonly P1 MapTo(ReadOnlySpan<byte> fp)
         {
             long[] u = new long[6];
             blst_fp_from_bendian(u, fp);
             blst_map_to_g1(Self(), u, null);
             return this;
         }
-        public P1 HashTo(in byte[] msg, string DST = "", in byte[] aug = null)
+        public readonly P1 HashTo(ReadOnlySpan<byte> msg, string DST = "", ReadOnlySpan<byte> aug = default)
         {
             byte[] dst = Encoding.UTF8.GetBytes(DST);
             blst_hash_to_g1(Self(), msg, (size_t)msg.Length,
@@ -649,7 +639,7 @@ public static partial class Bls
                                     aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
-        public P1 EncodeTo(in byte[] msg, string DST = "", in byte[] aug = null)
+        public readonly P1 EncodeTo(ReadOnlySpan<byte> msg, string DST = "", ReadOnlySpan<byte> aug = default)
         {
             byte[] dst = Encoding.UTF8.GetBytes(DST);
             blst_encode_to_g1(Self(), msg, (size_t)msg.Length,
@@ -657,14 +647,13 @@ public static partial class Bls
                                       aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 
-        public readonly P1 SignWith(in SecretKey sk)
+        public readonly P1 SignWith(SecretKey sk)
         { blst_sign_pk_in_g2(point, point, sk.key); return this; }
-        public readonly P1 SignWith(in Scalar scalar)
+        public readonly P1 SignWith(Scalar scalar)
         { blst_sign_pk_in_g2(point, point, scalar.val); return this; }
 
-        public readonly void Aggregate(in P1Affine inp)
+        public readonly void Aggregate(P1Affine inp)
         {
             if (blst_p1_affine_in_g1(inp.point))
             {
@@ -676,12 +665,12 @@ public static partial class Bls
             }
         }
 
-        public readonly P1 Mult(in byte[] scalar)
+        public readonly P1 Mult(ReadOnlySpan<byte> scalar)
         {
             blst_p1_mult(point, point, scalar, (size_t)(scalar.Length * 8));
             return this;
         }
-        public readonly P1 Mult(in Scalar scalar)
+        public readonly P1 Mult(Scalar scalar)
         {
             blst_p1_mult(point, point, scalar.val, 255);
             return this;
@@ -701,7 +690,7 @@ public static partial class Bls
             }
             return val;
         }
-        private static size_t GetSize(in byte[] val)
+        private static size_t GetSize(ReadOnlySpan<byte> val)
         {
             int len = val.Length;
             if (val[len - 1] == 0) len--;
@@ -721,17 +710,17 @@ public static partial class Bls
             scalar.FromBendian(val);
         }
 
-        private unsafe P1 MultiMultRawAffines(long* rawAffinesPtr, in Scalar[] scalars, int npoints)
+        private readonly unsafe P1 MultiMultRawAffines(long* rawAffinesPtr, byte[] rawScalars, int npoints)
         {
-            byte[] rawScalars = new byte[((size_t)npoints * 32)];
-            for (int i = 0; i < npoints; i++)
-            {
-                byte[] tmp = scalars[i].ToLendian();
-                for (int j = 0; j < 32; j++)
-                {
-                    rawScalars[(i * 32) + j] = tmp[j];
-                }
-            }
+            // byte[] rawScalars = new byte[((size_t)npoints * 32)];
+            // for (int i = 0; i < npoints; i++)
+            // {
+            //     byte[] tmp = scalars[i].ToLendian();
+            //     for (int j = 0; j < 32; j++)
+            //     {
+            //         rawScalars[(i * 32) + j] = tmp[j];
+            //     }
+            // }
 
             fixed (byte* rawScalarsPtr = rawScalars)
             {
@@ -749,53 +738,53 @@ public static partial class Bls
             return this;
         }
 
-        public unsafe P1 MultiMult(in P1[] points, in Scalar[] scalars)
+        public readonly unsafe P1 MultiMult(long[] rawPoints, byte[] rawScalars, int npoints)
         {
-            long[] rawPoints = new long[points.Length * 18];
-            long[] rawAffines = new long[points.Length * 12];
+            // long[] rawPoints = new long[points.Length * 18];
+            long[] rawAffines = new long[npoints * 12];
 
-            int i = 0;
-            foreach (P1 point in points)
-            {
-                // filter out zero elements
-                if (point.IsInf())
-                {
-                    continue;
-                }
+            // int i = 0;
+            // foreach (P1 point in points)
+            // {
+            //     // filter out zero elements
+            //     if (point.IsInf())
+            //     {
+            //         continue;
+            //     }
 
-                for (int j = 0; j < 18; j++)
-                {
-                    rawPoints[i * 18 + j] = point.point[j];
-                }
+            //     for (int j = 0; j < 18; j++)
+            //     {
+            //         rawPoints[i * 18 + j] = point.point[j];
+            //     }
 
-                i++;
-            }
+            //     i++;
+            // }
 
             fixed (long* rawPointsPtr = rawPoints)
             {
                 long*[] rawPointsWrapper = [rawPointsPtr, null];
 
                 fixed (long** rawPointsWrapperPtr = rawPointsWrapper)
-                    blst_p1s_to_affine(rawAffines, rawPointsWrapperPtr, (size_t)i);
+                    blst_p1s_to_affine(rawAffines, rawPointsWrapperPtr, (size_t)npoints);
             }
 
             fixed (long* rawAffinesPtr = rawAffines)
-                return MultiMultRawAffines(rawAffinesPtr, scalars, i);
+                return MultiMultRawAffines(rawAffinesPtr, rawScalars, npoints);
         }
         public readonly P1 Cneg(bool flag) { blst_p1_cneg(point, flag); return this; }
         public readonly P1 Neg() { blst_p1_cneg(point, true); return this; }
-        public readonly P1 Add(in P1 a)
+        public readonly P1 Add(P1 a)
         { blst_p1_add_or_double(point, point, a.point); return this; }
-        public readonly P1 Add(in P1Affine a)
+        public readonly P1 Add(P1Affine a)
         { blst_p1_add_or_double_affine(point, point, a.point); return this; }
         public readonly P1 Dbl()
         { blst_p1_double(point, point); return this; }
 
         public static P1 Generator()
         {
-            var ret = new P1(true);
-            Marshal.Copy(blst_p1_generator(), ret.point, 0, ret.point.Length);
-            return ret;
+            long[] res = new long[sz];
+            Marshal.Copy(blst_p1_generator(), res, 0, sz);
+            return new(res);
         }
     }
 
@@ -803,20 +792,20 @@ public static partial class Bls
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_aggregated_in_g1([Out] long[] fp12, [In] long[] p);
+    static private partial void blst_aggregated_in_g1(Span<long> fp12, ReadOnlySpan<long> p);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial ERROR blst_pairing_aggregate_pk_in_g1([In, Out] long[] fp12,
-                                    [In] long[] pk, [In] long[] sig,
-                                    [In] byte[] msg, size_t msg_len,
-                                    [In] byte[] aug, size_t aug_len);
+    static private partial ERROR blst_pairing_aggregate_pk_in_g1(Span<long> fp12,
+                                    ReadOnlySpan<long> pk, ReadOnlySpan<long> sig,
+                                    ReadOnlySpan<byte> msg, size_t msg_len,
+                                    ReadOnlySpan<byte> aug, size_t aug_len);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial ERROR blst_pairing_mul_n_aggregate_pk_in_g1([In, Out] long[] fp12,
-                                    [In] long[] pk, [In] long[] sig,
-                                    [In] byte[] scalar, size_t nbits,
-                                    [In] byte[] msg, size_t msg_len,
-                                    [In] byte[] aug, size_t aug_len);
+    static private partial ERROR blst_pairing_mul_n_aggregate_pk_in_g1(Span<long> fp12,
+                                    ReadOnlySpan<long> pk, ReadOnlySpan<long> sig,
+                                    ReadOnlySpan<byte> scalar, size_t nbits,
+                                    ReadOnlySpan<byte> msg, size_t msg_len,
+                                    ReadOnlySpan<byte> aug, size_t aug_len);
 
 
     [LibraryImport(LibraryName)]
@@ -825,33 +814,33 @@ public static partial class Bls
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial ERROR blst_p2_deserialize([Out] long[] ret, [In] byte[] inp);
+    static private partial ERROR blst_p2_deserialize(Span<long> ret, ReadOnlySpan<byte> inp);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p2_affine_serialize([Out] byte[] ret, [In] long[] inp);
+    static private partial void blst_p2_affine_serialize(Span<byte> ret, ReadOnlySpan<long> inp);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p2_affine_compress([Out] byte[] ret, [In] long[] inp);
+    static private partial void blst_p2_affine_compress(Span<byte> ret, ReadOnlySpan<long> inp);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p2_to_affine([Out] long[] ret, [In] long[] inp);
+    static private partial void blst_p2_to_affine(Span<long> ret, ReadOnlySpan<long> inp);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_p2_affine_on_curve([In] long[] point);
+    static private partial bool blst_p2_affine_on_curve(ReadOnlySpan<long> point);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_p2_affine_in_g2([In] long[] point);
+    static private partial bool blst_p2_affine_in_g2(ReadOnlySpan<long> point);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_p2_affine_is_inf([In] long[] point);
+    static private partial bool blst_p2_affine_is_inf(ReadOnlySpan<long> point);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_p2_affine_is_equal([In] long[] a, [In] long[] b);
+    static private partial bool blst_p2_affine_is_equal(ReadOnlySpan<long> a, ReadOnlySpan<long> b);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
@@ -859,22 +848,23 @@ public static partial class Bls
 
     // [LibraryImport(LibraryName)]
     // [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    // static private partial ERROR blst_core_verify_pk_in_g1([In] long[] pk, [In] long[] sig,
+    // static private partial ERROR blst_core_verify_pk_in_g1(ReadOnlySpan<long> pk, ReadOnlySpan<long> sig,
     //                                               [MarshalAs(UnmanagedType.Bool)] bool hash_or_encode,
-    //                                               [In] byte[] msg, size_t msg_len,
-    //                                               [In] byte[] dst, size_t dst_len,
-    //                                               [In] byte[] aug, size_t aug_len);
+    //                                               ReadOnlySpan<byte> msg, size_t msg_len,
+    //                                               ReadOnlySpan<byte> dst, size_t dst_len,
+    //                                               ReadOnlySpan<byte> aug, size_t aug_len);
 
-    public readonly struct P2Affine
+    public readonly ref struct P2Affine
     {
-        internal readonly long[] point;
+        internal readonly Span<long> point;
 
         private static readonly int sz = (int)blst_p2_affine_sizeof() / sizeof(long);
 
+        private P2Affine(long[] p) { point = p; }
         private P2Affine(bool _) { point = new long[sz]; }
-        private P2Affine(in P2Affine p) { point = (long[])p.point.Clone(); }
+        private P2Affine(P2Affine p) { p.point.CopyTo(point); }
 
-        public P2Affine(in byte[] inp) : this(true)
+        public P2Affine(ReadOnlySpan<byte> inp) : this(true)
         {
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P2_COMPRESSED_SZ
@@ -889,7 +879,7 @@ public static partial class Bls
                 throw new Exception(err);
             }
         }
-        public P2Affine(in P2 jacobian) : this(true)
+        public P2Affine(P2 jacobian) : this(true)
         { blst_p2_to_affine(point, jacobian.point); }
 
         public readonly P2Affine Dup() => new(this);
@@ -913,7 +903,7 @@ public static partial class Bls
             => blst_p2_affine_in_g2(point);
         public readonly bool IsInf()
             => blst_p2_affine_is_inf(point);
-        public readonly bool IsEqual(in P2Affine p)
+        public readonly bool IsEqual(P2Affine p)
             => blst_p2_affine_is_equal(point, p.point);
 
         //         readonly ERROR core_verify(P1Affine pk, bool hash_or_encode,
@@ -931,9 +921,9 @@ public static partial class Bls
 
         public static P2Affine Generator()
         {
-            var ret = new P2Affine(true);
-            Marshal.Copy(blst_p2_generator(), ret.point, 0, ret.point.Length);
-            return ret;
+            long[] res = new long[sz];
+            Marshal.Copy(blst_p2_generator(), res, 0, sz);
+            return new(res);
         }
     }
 
@@ -942,68 +932,68 @@ public static partial class Bls
     static private partial size_t blst_p2_sizeof();
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p2_serialize([Out] byte[] ret, [In] long[] inp);
+    static private partial void blst_p2_serialize(Span<byte> ret, ReadOnlySpan<long> inp);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p2_compress([Out] byte[] ret, [In] long[] inp);
+    static private partial void blst_p2_compress(Span<byte> ret, ReadOnlySpan<long> inp);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p2_from_affine([Out] long[] ret, [In] long[] inp);
+    static private partial void blst_p2_from_affine(Span<long> ret, ReadOnlySpan<long> inp);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_p2_on_curve([In] long[] point);
+    static private partial bool blst_p2_on_curve(ReadOnlySpan<long> point);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_p2_in_g2([In] long[] point);
+    static private partial bool blst_p2_in_g2(ReadOnlySpan<long> point);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_p2_is_inf([In] long[] point);
+    static private partial bool blst_p2_is_inf(ReadOnlySpan<long> point);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_p2_is_equal([In] long[] a, [In] long[] b);
+    static private partial bool blst_p2_is_equal(ReadOnlySpan<long> a, ReadOnlySpan<long> b);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_sk_to_pk_in_g2([Out] long[] ret, [In] byte[] SK);
+    static private partial void blst_sk_to_pk_in_g2(Span<long> ret, ReadOnlySpan<byte> SK);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_map_to_g2([Out] long[] ret, [In] long[] u, [In] long[] v);
+    static private partial void blst_map_to_g2(Span<long> ret, ReadOnlySpan<long> u, ReadOnlySpan<long> v);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_encode_to_g2([Out] long[] ret, [In] byte[] msg, size_t msg_len,
-                                             [In] byte[] dst, size_t dst_len,
-                                             [In] byte[] aug, size_t aug_len);
+    static private partial void blst_encode_to_g2(Span<long> ret, ReadOnlySpan<byte> msg, size_t msg_len,
+                                             ReadOnlySpan<byte> dst, size_t dst_len,
+                                             ReadOnlySpan<byte> aug, size_t aug_len);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_hash_to_g2([Out] long[] ret, [In] byte[] msg, size_t msg_len,
-                                           [In] byte[] dst, size_t dst_len,
-                                           [In] byte[] aug, size_t aug_len);
+    static private partial void blst_hash_to_g2(Span<long> ret, ReadOnlySpan<byte> msg, size_t msg_len,
+                                           ReadOnlySpan<byte> dst, size_t dst_len,
+                                           ReadOnlySpan<byte> aug, size_t aug_len);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_sign_pk_in_g1([Out] long[] ret, [In] long[] hash, [In] byte[] SK);
+    static private partial void blst_sign_pk_in_g1(Span<long> ret, ReadOnlySpan<long> hash, ReadOnlySpan<byte> SK);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p2_mult([Out] long[] ret, [In] long[] a,
-                                        [In] byte[] scalar, size_t nbits);
+    static private partial void blst_p2_mult(Span<long> ret, ReadOnlySpan<long> a,
+                                        ReadOnlySpan<byte> scalar, size_t nbits);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p2_cneg([Out] long[] ret, [MarshalAs(UnmanagedType.Bool)] bool cbit);
+    static private partial void blst_p2_cneg(Span<long> ret, [MarshalAs(UnmanagedType.Bool)] bool cbit);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p2_add_or_double([Out] long[] ret, [In] long[] a, [In] long[] b);
+    static private partial void blst_p2_add_or_double(Span<long> ret, ReadOnlySpan<long> a, ReadOnlySpan<long> b);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p2_add_or_double_affine([Out] long[] ret, [In] long[] a,
-                                                        [In] long[] b);
+    static private partial void blst_p2_add_or_double_affine(Span<long> ret, ReadOnlySpan<long> a,
+                                                        ReadOnlySpan<long> b);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_p2_double([Out] long[] ret, [In] long[] a);
+    static private partial void blst_p2_double(Span<long> ret, ReadOnlySpan<long> a);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     static private partial size_t blst_p2s_mult_pippenger_scratch_sizeof(size_t npoints);
@@ -1012,27 +1002,27 @@ public static partial class Bls
     //                          size_t nbits, limb_t *scratch);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static unsafe partial void blst_p2s_mult_pippenger([Out] long[] ret, long** points,
+    static unsafe partial void blst_p2s_mult_pippenger(Span<long> ret, long** points,
         size_t npoints, byte** scalars, size_t nbits, long* scratch);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static unsafe partial void blst_p2s_to_affine([Out] long[] dst, long** points, size_t npoints);
+    static unsafe partial void blst_p2s_to_affine(Span<long> dst, long** points, size_t npoints);
 
-    public struct P2
+    public ref struct P2
     {
-        internal long[] point;
+        internal Span<long> point;
 
         private static readonly int sz = (int)blst_p2_sizeof() / sizeof(long);
 
+        private P2(long[] p) { point = p; }
         private P2(bool _) { point = new long[sz]; }
-        private P2(in P2 p) { point = (long[])p.point.Clone(); }
-        private long[] Self()
-        { point ??= new long[sz]; return point; }
+        private P2(P2 p) { p.point.CopyTo(point); }
+        private readonly Span<long> Self() => point;
 
-        public P2(in SecretKey sk) : this(true)
+        public P2(SecretKey sk) : this(true)
         { blst_sk_to_pk_in_g2(point, sk.key); }
-        public P2(byte[] inp) : this(true)
+        public P2(ReadOnlySpan<byte> inp) : this(true)
         {
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P2_COMPRESSED_SZ
@@ -1047,13 +1037,13 @@ public static partial class Bls
 
                 long[] tmp = new long[6];
                 blst_fp_from_bendian(tmp, inp[..48]);
-                tmp.CopyTo(point.AsSpan()[6..]);
+                tmp.CopyTo(point[6..]);
 
                 blst_fp_from_bendian(tmp, inp[144..]);
-                tmp.CopyTo(point.AsSpan()[12..]);
+                tmp.CopyTo(point[12..]);
 
                 blst_fp_from_bendian(tmp, inp[96..]);
-                tmp.CopyTo(point.AsSpan()[18..]);
+                tmp.CopyTo(point[18..]);
             }
             else
             {
@@ -1064,20 +1054,20 @@ public static partial class Bls
 
             blst_p2_from_affine(point, point);
         }
-        public P2(in P2Affine affine) : this(true)
+        public P2(P2Affine affine) : this(true)
         { blst_p2_from_affine(point, affine.point); }
 
         public readonly P2 Dup() => new(this);
         public readonly P2Affine ToAffine() => new(this);
-        public readonly byte[] Serialize()
+        public readonly Span<byte> Serialize()
         {
-            byte[] ret = new byte[2 * P2_COMPRESSED_SZ];
+            Span<byte> ret = new byte[2 * P2_COMPRESSED_SZ];
             blst_p2_serialize(ret, point);
             return ret;
         }
-        public readonly byte[] Compress()
+        public readonly Span<byte> Compress()
         {
-            byte[] ret = new byte[P2_COMPRESSED_SZ];
+            Span<byte> ret = new byte[P2_COMPRESSED_SZ];
             blst_p2_compress(ret, point);
             return ret;
         }
@@ -1091,8 +1081,7 @@ public static partial class Bls
         public readonly bool IsEqual(P2 p)
             => blst_p2_is_equal(point, p.point);
 
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-        public unsafe P2 MapTo(in byte[] c0, in byte[] c1)
+        public readonly unsafe P2 MapTo(ReadOnlySpan<byte> c0, ReadOnlySpan<byte> c1)
         {
             long[] u0 = new long[6];
             long[] u1 = new long[6];
@@ -1105,7 +1094,7 @@ public static partial class Bls
             blst_map_to_g2(Self(), u, null);
             return this;
         }
-        public P2 HashTo(in byte[] msg, string DST = "", in byte[] aug = null)
+        public readonly P2 HashTo(ReadOnlySpan<byte> msg, string DST = "", ReadOnlySpan<byte> aug = default)
         {
             byte[] dst = Encoding.UTF8.GetBytes(DST);
             blst_hash_to_g2(Self(), msg, (size_t)msg.Length,
@@ -1113,7 +1102,7 @@ public static partial class Bls
                                     aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
-        public P2 EncodeTo(in byte[] msg, string DST = "", in byte[] aug = null)
+        public readonly P2 EncodeTo(ReadOnlySpan<byte> msg, string DST = "", ReadOnlySpan<byte> aug = default)
         {
             byte[] dst = Encoding.UTF8.GetBytes(DST);
             blst_encode_to_g2(Self(), msg, (size_t)msg.Length,
@@ -1121,14 +1110,13 @@ public static partial class Bls
                                       aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 
-        public readonly P2 SignWith(in SecretKey sk)
+        public readonly P2 SignWith(SecretKey sk)
         { blst_sign_pk_in_g1(point, point, sk.key); return this; }
-        public readonly P2 SignWith(in Scalar scalar)
+        public readonly P2 SignWith(Scalar scalar)
         { blst_sign_pk_in_g1(point, point, scalar.val); return this; }
 
-        public readonly void Aggregate(in P2Affine inp)
+        public readonly void Aggregate(P2Affine inp)
         {
             if (blst_p2_affine_in_g2(inp.point))
             {
@@ -1140,12 +1128,12 @@ public static partial class Bls
             }
         }
 
-        public readonly P2 Mult(in byte[] scalar)
+        public readonly P2 Mult(ReadOnlySpan<byte> scalar)
         {
             blst_p2_mult(point, point, scalar, (size_t)(scalar.Length * 8));
             return this;
         }
-        public readonly P2 Mult(in Scalar scalar)
+        public readonly P2 Mult(Scalar scalar)
         {
             blst_p2_mult(point, point, scalar.val, 255);
             return this;
@@ -1167,17 +1155,17 @@ public static partial class Bls
             blst_p2_mult(point, point, val, (size_t)(len * 8));
             return this;
         }
-        private unsafe P2 MultiMultRawAffines(long* rawAffinesPtr, in Scalar[] scalars, int npoints)
+        private readonly unsafe P2 MultiMultRawAffines(long* rawAffinesPtr, byte[] rawScalars, int npoints)
         {
-            byte[] rawScalars = new byte[((size_t)npoints * 32)];
-            for (int i = 0; i < npoints; i++)
-            {
-                byte[] tmp = scalars[i].ToLendian();
-                for (int j = 0; j < 32; j++)
-                {
-                    rawScalars[(i * 32) + j] = tmp[j];
-                }
-            }
+            // byte[] rawScalars = new byte[((size_t)npoints * 32)];
+            // for (int i = 0; i < npoints; i++)
+            // {
+            //     byte[] tmp = scalars[i].ToLendian();
+            //     for (int j = 0; j < 32; j++)
+            //     {
+            //         rawScalars[(i * 32) + j] = tmp[j];
+            //     }
+            // }
 
             fixed (byte* rawScalarsPtr = rawScalars)
             {
@@ -1195,53 +1183,53 @@ public static partial class Bls
             return this;
         }
 
-        public unsafe P2 MultiMult(in P2[] points, in Scalar[] scalars)
+        public readonly unsafe P2 MultiMult(long[] rawPoints, byte[] rawScalars, int npoints)
         {
-            long[] rawPoints = new long[points.Length * 36];
-            long[] rawAffines = new long[points.Length * 24];
+            // long[] rawPoints = new long[points.Length * 36];
+            long[] rawAffines = new long[npoints * 24];
 
-            int i = 0;
-            foreach (P2 point in points)
-            {
-                // filter out zero elements
-                if (point.IsInf())
-                {
-                    continue;
-                }
+            // int i = 0;
+            // foreach (P2 point in points)
+            // {
+            //     // filter out zero elements
+            //     if (point.IsInf())
+            //     {
+            //         continue;
+            //     }
 
-                for (int j = 0; j < 36; j++)
-                {
-                    rawPoints[i * 36 + j] = point.point[j];
-                }
+            //     for (int j = 0; j < 36; j++)
+            //     {
+            //         rawPoints[i * 36 + j] = point.point[j];
+            //     }
 
-                i++;
-            }
+            //     i++;
+            // }
 
             fixed (long* rawPointsPtr = rawPoints)
             {
                 long*[] rawPointsWrapper = [rawPointsPtr, null];
 
                 fixed (long** rawPointsWrapperPtr = rawPointsWrapper)
-                    blst_p2s_to_affine(rawAffines, rawPointsWrapperPtr, (size_t)i);
+                    blst_p2s_to_affine(rawAffines, rawPointsWrapperPtr, (size_t)npoints);
             }
 
             fixed (long* rawAffinesPtr = rawAffines)
-                return MultiMultRawAffines(rawAffinesPtr, scalars, i);
+                return MultiMultRawAffines(rawAffinesPtr, rawScalars, npoints);
         }
         public readonly P2 Cneg(bool flag) { blst_p2_cneg(point, flag); return this; }
         public readonly P2 Neg() { blst_p2_cneg(point, true); return this; }
-        public readonly P2 Add(in P2 a)
+        public readonly P2 Add(P2 a)
         { blst_p2_add_or_double(point, point, a.point); return this; }
-        public readonly P2 Add(in P2Affine a)
+        public readonly P2 Add(P2Affine a)
         { blst_p2_add_or_double_affine(point, point, a.point); return this; }
         public readonly P2 Dbl()
         { blst_p2_double(point, point); return this; }
 
         public static P2 Generator()
         {
-            var ret = new P2(true);
-            Marshal.Copy(blst_p2_generator(), ret.point, 0, ret.point.Length);
-            return ret;
+            long[] res = new long[sz];
+            Marshal.Copy(blst_p2_generator(), res, 0, sz);
+            return new(res);
         }
     }
 
@@ -1249,20 +1237,20 @@ public static partial class Bls
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_aggregated_in_g2([Out] long[] fp12, [In] long[] p);
+    static private partial void blst_aggregated_in_g2(Span<long> fp12, ReadOnlySpan<long> p);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial ERROR blst_pairing_aggregate_pk_in_g2([In, Out] long[] fp12,
-                                    [In] long[] pk, [In] long[] sig,
-                                    [In] byte[] msg, size_t msg_len,
-                                    [In] byte[] aug, size_t aug_len);
+    static private partial ERROR blst_pairing_aggregate_pk_in_g2(Span<long> fp12,
+                                    ReadOnlySpan<long> pk, ReadOnlySpan<long> sig,
+                                    ReadOnlySpan<byte> msg, size_t msg_len,
+                                    ReadOnlySpan<byte> aug, size_t aug_len);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial ERROR blst_pairing_mul_n_aggregate_pk_in_g2([In, Out] long[] fp12,
-                                    [In] long[] pk, [In] long[] sig,
-                                    [In] byte[] scalar, size_t nbits,
-                                    [In] byte[] msg, size_t msg_len,
-                                    [In] byte[] aug, size_t aug_len);
+    static private partial ERROR blst_pairing_mul_n_aggregate_pk_in_g2(Span<long> fp12,
+                                    ReadOnlySpan<long> pk, ReadOnlySpan<long> sig,
+                                    ReadOnlySpan<byte> scalar, size_t nbits,
+                                    ReadOnlySpan<byte> msg, size_t msg_len,
+                                    ReadOnlySpan<byte> aug, size_t aug_len);
 
 
     [LibraryImport(LibraryName)]
@@ -1270,67 +1258,68 @@ public static partial class Bls
     static private partial size_t blst_fp12_sizeof();
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_miller_loop([Out] long[] fp12, [In] long[] q,
-                                                           [In] long[] p);
+    static private partial void blst_miller_loop(Span<long> fp12, ReadOnlySpan<long> q,
+                                                           ReadOnlySpan<long> p);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_fp12_is_one([In] long[] fp12);
+    static private partial bool blst_fp12_is_one(ReadOnlySpan<long> fp12);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_fp12_is_equal([In] long[] a, [In] long[] b);
+    static private partial bool blst_fp12_is_equal(ReadOnlySpan<long> a, ReadOnlySpan<long> b);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_fp12_sqr([Out] long[] ret, [In] long[] a);
+    static private partial void blst_fp12_sqr(Span<long> ret, ReadOnlySpan<long> a);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_fp12_mul([Out] long[] ret, [In] long[] a,
-                                                       [In] long[] b);
+    static private partial void blst_fp12_mul(Span<long> ret, ReadOnlySpan<long> a,
+                                                       ReadOnlySpan<long> b);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_final_exp([Out] long[] ret, [In] long[] a);
+    static private partial void blst_final_exp(Span<long> ret, ReadOnlySpan<long> a);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_fp12_finalverify([In] long[] a, [In] long[] b);
+    static private partial bool blst_fp12_finalverify(ReadOnlySpan<long> a, ReadOnlySpan<long> b);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     static private partial IntPtr blst_fp12_one();
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_fp12_in_group([In] long[] a);
+    static private partial bool blst_fp12_in_group(ReadOnlySpan<long> a);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_bendian_from_fp12([Out] byte[] ret, [In] long[] a);
+    static private partial void blst_bendian_from_fp12(Span<byte> ret, ReadOnlySpan<long> a);
 
-    public readonly struct PT
+    public readonly ref struct PT
     {
-        internal readonly long[] fp12;
+        internal readonly Span<long> fp12;
 
         private static readonly int sz = (int)blst_fp12_sizeof() / sizeof(long);
 
+        internal PT(long[] p) { fp12 = p; }
         internal PT(bool _) { fp12 = new long[sz]; }
-        private PT(in PT orig) { fp12 = (long[])orig.fp12.Clone(); }
+        private PT(PT orig) { orig.fp12.CopyTo(fp12); }
 
-        public PT(in P1Affine p) : this(true)
+        public PT(P1Affine p) : this(true)
         { blst_aggregated_in_g1(fp12, p.point); }
-        public PT(in P1 p) : this(true)
+        public PT(P1 p) : this(true)
         { blst_aggregated_in_g1(fp12, new P1Affine(p).point); }
-        public PT(in P2Affine q) : this(true)
+        public PT(P2Affine q) : this(true)
         { blst_aggregated_in_g2(fp12, q.point); }
-        public PT(in P2 q) : this(true)
+        public PT(P2 q) : this(true)
         { blst_aggregated_in_g2(fp12, new P2Affine(q).point); }
-        public PT(in P2Affine q, in P1Affine p) : this(true)
+        public PT(P2Affine q, P1Affine p) : this(true)
         { blst_miller_loop(fp12, q.point, p.point); }
-        public PT(in P1Affine p, in P2Affine q) : this(q, p) { }
-        public PT(in P2 q, in P1 p) : this(true)
+        public PT(P1Affine p, P2Affine q) : this(q, p) { }
+        public PT(P2 q, P1 p) : this(true)
         {
             blst_miller_loop(fp12, new P2Affine(q).point,
                                    new P1Affine(p).point);
         }
-        public PT(in P1 p, in P2 q) : this(q, p) { }
+        public PT(P1 p, P2 q) : this(q, p) { }
 
         public readonly PT Dup() => new(this);
         public readonly bool IsOne()
@@ -1338,7 +1327,7 @@ public static partial class Bls
         public readonly bool IsEqual(PT p)
             => blst_fp12_is_equal(fp12, p.fp12);
         public readonly PT Sqr() { blst_fp12_sqr(fp12, fp12); return this; }
-        public readonly PT Mul(in PT p) { blst_fp12_mul(fp12, fp12, p.fp12); return this; }
+        public readonly PT Mul(PT p) { blst_fp12_mul(fp12, fp12, p.fp12); return this; }
         public readonly PT FinalExp() { blst_final_exp(fp12, fp12); return this; }
         public readonly bool InGroup()
             => blst_fp12_in_group(fp12);
@@ -1349,14 +1338,14 @@ public static partial class Bls
             return ret;
         }
 
-        public static bool Finalverify(in PT gt1, in PT gt2)
+        public static bool Finalverify(PT gt1, PT gt2)
         { return blst_fp12_finalverify(gt1.fp12, gt2.fp12); }
 
         public static PT One()
         {
-            var ret = new PT(true);
-            Marshal.Copy(blst_fp12_one(), ret.fp12, 0, ret.fp12.Length);
-            return ret;
+            long[] res = new long[sz];
+            Marshal.Copy(blst_fp12_one(), res, 0, sz);
+            return new(res);
         }
     }
 
@@ -1365,32 +1354,33 @@ public static partial class Bls
     static private partial size_t blst_pairing_sizeof();
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_pairing_init([In, Out] long[] ctx, [MarshalAs(UnmanagedType.Bool)] bool hash_or_encode,
+    static private partial void blst_pairing_init(Span<long> ctx, [MarshalAs(UnmanagedType.Bool)] bool hash_or_encode,
                                                  ref long dst, size_t dst_len);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_pairing_commit([In, Out] long[] ctx);
+    static private partial void blst_pairing_commit(Span<long> ctx);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial ERROR blst_pairing_merge([In, Out] long[] ctx, [In] long[] ctx1);
+    static private partial ERROR blst_pairing_merge(Span<long> ctx, ReadOnlySpan<long> ctx1);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private partial bool blst_pairing_finalverify([In] long[] ctx, [In] long[] sig);
+    static private partial bool blst_pairing_finalverify(ReadOnlySpan<long> ctx, ReadOnlySpan<long> sig);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial void blst_pairing_raw_aggregate([In, Out] long[] ctx, [In] long[] q,
-                                                          [In] long[] p);
+    static private partial void blst_pairing_raw_aggregate(Span<long> ctx, ReadOnlySpan<long> q,
+                                                          ReadOnlySpan<long> p);
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
-    static private partial IntPtr blst_pairing_as_fp12([In] long[] ctx);
+    static private partial IntPtr blst_pairing_as_fp12(ReadOnlySpan<long> ctx);
 
-    public readonly struct Pairing
+    public readonly ref struct Pairing
     {
-        private readonly long[] ctx;
+        private readonly Span<long> ctx;
 
         private static readonly int sz = (int)blst_pairing_sizeof() / sizeof(long);
 
+        internal Pairing(long[] p) { ctx = p; }
         public Pairing(bool hashOrEncode = false, string DST = "")
         {
             byte[] dst = Encoding.UTF8.GetBytes(DST);
@@ -1403,51 +1393,37 @@ public static partial class Bls
             for (int i = 0; i < add_len; i++)
                 ctx[sz + i] = BitConverter.ToInt64(dst, i * sizeof(long));
 
-            var h = GCHandle.Alloc(ctx, GCHandleType.Pinned);
             blst_pairing_init(ctx, hashOrEncode, ref ctx[sz], (size_t)dst_len);
-            h.Free();
         }
 
-        public readonly ERROR Aggregate(in P1Affine pk, in P2Affine? sig,
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-                                             byte[] msg, byte[] aug = null)
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
-#pragma warning disable CS8604 // Possible null reference argument.
+        public readonly ERROR Aggregate(P1Affine pk, P2Affine sig,
+                                              ReadOnlySpan<byte> msg, ReadOnlySpan<byte> aug = default)
         {
             return blst_pairing_aggregate_pk_in_g1(ctx, pk.point,
-                                    sig.HasValue ? sig.Value.point : null,
+                                    sig.point,
                                     msg, (size_t)msg.Length,
                                     aug, (size_t)(aug != null ? aug.Length : 0));
-#pragma warning restore CS8604 // Possible null reference argument.
         }
-        public readonly ERROR Aggregate(in P2Affine pk, in P1Affine? sig,
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-                                             byte[] msg, byte[] aug = null)
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
-#pragma warning disable CS8604 // Possible null reference argument.
+        public readonly ERROR Aggregate(P2Affine pk, P1Affine sig,
+                                             ReadOnlySpan<byte> msg, ReadOnlySpan<byte> aug = default)
         {
             return blst_pairing_aggregate_pk_in_g2(ctx, pk.point,
-                                    sig.HasValue ? sig.Value.point : null,
+                                    sig.point,
                                     msg, (size_t)msg.Length,
                                     aug, (size_t)(aug != null ? aug.Length : 0));
-#pragma warning restore CS8604 // Possible null reference argument.
         }
-        public readonly ERROR MulNAggregate(in P2Affine pk, in P1Affine sig,
-                                                   byte[] scalar, int nbits,
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-                                                   byte[] msg, byte[] aug = null)
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+        public readonly ERROR MulNAggregate(P2Affine pk, P1Affine sig,
+                                                   ReadOnlySpan<byte> scalar, int nbits,
+                                                   ReadOnlySpan<byte> msg, ReadOnlySpan<byte> aug = default)
         {
             return blst_pairing_mul_n_aggregate_pk_in_g2(ctx, pk.point, sig.point,
                                     scalar, (size_t)nbits,
                                     msg, (size_t)msg.Length,
                                     aug, (size_t)(aug != null ? aug.Length : 0));
         }
-        public readonly ERROR MulNAggregate(in P1Affine pk, in P2Affine sig,
-                                                   byte[] scalar, int nbits,
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-                                                   byte[] msg, byte[] aug = null)
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+        public readonly ERROR MulNAggregate(P1Affine pk, P2Affine sig,
+                                                   ReadOnlySpan<byte> scalar, int nbits,
+                                                   ReadOnlySpan<byte> msg, ReadOnlySpan<byte> aug = default)
         {
             return blst_pairing_mul_n_aggregate_pk_in_g1(ctx, pk.point, sig.point,
                                     scalar, (size_t)nbits,
@@ -1464,29 +1440,25 @@ public static partial class Bls
                 throw new Exception(err);
             }
         }
-        public readonly bool Finalverify(in PT sig = new PT())
-#pragma warning disable CS8604 // Possible null reference argument.
+        public readonly bool Finalverify(PT sig = new PT())
         { return blst_pairing_finalverify(ctx, sig.fp12); }
-#pragma warning restore CS8604 // Possible null reference argument.
 
-        public readonly void RawAggregate(in P2Affine q, in P1Affine p)
+        public readonly void RawAggregate(P2Affine q, P1Affine p)
         { blst_pairing_raw_aggregate(ctx, q.point, p.point); }
-        public void RawAggregate(in P1Affine p, in P2Affine q)
+        public void RawAggregate(P1Affine p, P2Affine q)
         { RawAggregate(q, p); }
-        public readonly void RawAggregate(in P2 q, in P1 p)
+        public readonly void RawAggregate(P2 q, P1 p)
         {
             blst_pairing_raw_aggregate(ctx, new P2Affine(q).point,
                                             new P1Affine(p).point);
         }
-        public void RawAggregate(in P1 p, in P2 q)
+        public void RawAggregate(P1 p, P2 q)
             => RawAggregate(q, p);
         public readonly PT AsFp12()
         {
-            var ret = new PT(true);
-            GCHandle h = GCHandle.Alloc(ctx, GCHandleType.Pinned);
-            Marshal.Copy(blst_pairing_as_fp12(ctx), ret.fp12, 0, ret.fp12.Length);
-            h.Free();
-            return ret;
+            long[] res = new long[sz];
+            Marshal.Copy(blst_pairing_as_fp12(ctx), res, 0, sz);
+            return new(res);
         }
     }
 }
