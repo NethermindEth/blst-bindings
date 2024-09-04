@@ -1403,7 +1403,7 @@ public static partial class Bls
                 throw new Exception(err);
             }
         }
-        public readonly bool Finalverify(PT sig = new PT())
+        public readonly bool FinalVerify(PT sig = new PT())
         { return blst_pairing_finalverify(ctx, sig.fp12); }
 
         public readonly void RawAggregate(P2Affine q, P1Affine p)
