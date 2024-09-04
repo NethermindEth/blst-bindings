@@ -30,7 +30,7 @@ public class BlsTests
         GT q2 = new(G1.Generator().Mult(78), G2.Generator().Mult(12 * 56));
         GT q3 = new(G1.Generator().Mult(78), G2.Generator().Mult(34 * 56));
         q2.Mul(q3);
-        Assert.That(GT.Finalverify(q1, q2));
+        Assert.That(GT.FinalVerify(q1, q2));
     }
 
     [Test]
@@ -38,7 +38,7 @@ public class BlsTests
     {
         GT q1 = new(G1.Generator().Mult(2), G2.Generator());
         GT q2 = new(G1.Generator(), G2.Generator().Mult(2));
-        Assert.That(GT.Finalverify(q1, q2));
+        Assert.That(GT.FinalVerify(q1, q2));
     }
 
 

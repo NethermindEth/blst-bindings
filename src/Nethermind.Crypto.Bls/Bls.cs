@@ -1297,7 +1297,7 @@ public static partial class Bls
             return ret;
         }
 
-        public static bool Finalverify(PT gt1, PT gt2)
+        public static bool FinalVerify(PT gt1, PT gt2)
         { return blst_fp12_finalverify(gt1.fp12, gt2.fp12); }
 
         public static PT One()
