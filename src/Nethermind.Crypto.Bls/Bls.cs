@@ -469,11 +469,9 @@ public static partial class Bls
         }
     }
 
-
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     static private partial void blst_fp_from_bendian(Span<long> ret, ReadOnlySpan<byte> a);
-
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
@@ -559,9 +557,9 @@ public static partial class Bls
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     static unsafe partial void blst_p1s_to_affine(Span<long> dst, long** points, size_t npoints);
 
-    public ref struct P1
+    public readonly ref struct P1
     {
-        internal Span<long> point;
+        internal readonly Span<long> point;
 
         private static readonly int sz = (int)blst_p1_sizeof() / sizeof(long);
 
@@ -584,9 +582,7 @@ public static partial class Bls
             if (len == 2 * P1_COMPRESSED_SZ)
             {
                 blst_fp_from_bendian(point, inp[..48]);
-                long[] tmp = new long[6];
-                blst_fp_from_bendian(tmp, inp[48..]);
-                tmp.CopyTo(point[6..]);
+                blst_fp_from_bendian(point[6..], inp[48..]);
             }
             else
             {
@@ -597,6 +593,19 @@ public static partial class Bls
 
             blst_p1_from_affine(point, point);
         }
+
+        public static void Decode(Span<long> res, ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2)
+        {
+            if (fp1.Length != 48 || fp2.Length != 48)
+            {
+                throw new Exception(ERROR.BADENCODING);
+            }
+
+            blst_fp_from_bendian(res, fp1);
+            blst_fp_from_bendian(res[6..], fp2);
+            blst_p1_from_affine(res, res);
+        }
+
         public P1(P1Affine affine) : this(true)
         { blst_p1_from_affine(point, affine.point); }
 
@@ -710,25 +719,15 @@ public static partial class Bls
             scalar.FromBendian(val);
         }
 
-        private readonly unsafe P1 MultiMultRawAffines(long* rawAffinesPtr, byte[] rawScalars, int npoints)
+        private readonly unsafe P1 MultiMultRawAffines(long* rawAffinesPtr, Span<byte> rawScalars, int npoints)
         {
-            // byte[] rawScalars = new byte[((size_t)npoints * 32)];
-            // for (int i = 0; i < npoints; i++)
-            // {
-            //     byte[] tmp = scalars[i].ToLendian();
-            //     for (int j = 0; j < 32; j++)
-            //     {
-            //         rawScalars[(i * 32) + j] = tmp[j];
-            //     }
-            // }
-
             fixed (byte* rawScalarsPtr = rawScalars)
             {
                 long*[] rawAffinesWrapper = [rawAffinesPtr, null];
                 byte*[] rawScalarsWrapper = [rawScalarsPtr, null];
 
                 size_t scratchSize = blst_p1s_mult_pippenger_scratch_sizeof((size_t)npoints) / sizeof(long);
-                long[] scratch = new long[scratchSize];
+                Span<long> scratch = stackalloc long[(int)scratchSize];
 
                 fixed (long** rawAffinesWrapperPtr = rawAffinesWrapper)
                 fixed (byte** rawScalarsWrapperPtr = rawScalarsWrapper)
@@ -738,27 +737,10 @@ public static partial class Bls
             return this;
         }
 
-        public readonly unsafe P1 MultiMult(long[] rawPoints, byte[] rawScalars, int npoints)
+        // points at infinity should be filtered out, scalars little endian
+        public readonly unsafe P1 MultiMult(Span<long> rawPoints, Span<byte> rawScalars, int npoints)
         {
-            // long[] rawPoints = new long[points.Length * 18];
-            long[] rawAffines = new long[npoints * 12];
-
-            // int i = 0;
-            // foreach (P1 point in points)
-            // {
-            //     // filter out zero elements
-            //     if (point.IsInf())
-            //     {
-            //         continue;
-            //     }
-
-            //     for (int j = 0; j < 18; j++)
-            //     {
-            //         rawPoints[i * 18 + j] = point.point[j];
-            //     }
-
-            //     i++;
-            // }
+            Span<long> rawAffines = stackalloc long[npoints * 12];
 
             fixed (long* rawPointsPtr = rawPoints)
             {
@@ -1009,9 +991,9 @@ public static partial class Bls
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     static unsafe partial void blst_p2s_to_affine(Span<long> dst, long** points, size_t npoints);
 
-    public ref struct P2
+    public readonly ref struct P2
     {
-        internal Span<long> point;
+        internal readonly Span<long> point;
 
         private static readonly int sz = (int)blst_p2_sizeof() / sizeof(long);
 
@@ -1034,16 +1016,9 @@ public static partial class Bls
             if (len == 2 * P2_COMPRESSED_SZ)
             {
                 blst_fp_from_bendian(point, inp[48..]);
-
-                long[] tmp = new long[6];
-                blst_fp_from_bendian(tmp, inp[..48]);
-                tmp.CopyTo(point[6..]);
-
-                blst_fp_from_bendian(tmp, inp[144..]);
-                tmp.CopyTo(point[12..]);
-
-                blst_fp_from_bendian(tmp, inp[96..]);
-                tmp.CopyTo(point[18..]);
+                blst_fp_from_bendian(point[6..], inp[..48]);
+                blst_fp_from_bendian(point[12..], inp[144..]);
+                blst_fp_from_bendian(point[18..], inp[96..]);
             }
             else
             {
@@ -1054,20 +1029,35 @@ public static partial class Bls
 
             blst_p2_from_affine(point, point);
         }
+
+        public static void Decode(Span<long> res, ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2, ReadOnlySpan<byte> fp3, ReadOnlySpan<byte> fp4)
+        {
+            if (fp1.Length != 48 || fp2.Length != 48 || fp3.Length != 48 || fp4.Length != 48)
+            {
+                throw new Exception(ERROR.BADENCODING);
+            }
+
+            blst_fp_from_bendian(res, fp1);
+            blst_fp_from_bendian(res[6..], fp2);
+            blst_fp_from_bendian(res[12..], fp3);
+            blst_fp_from_bendian(res[18..], fp4);
+            blst_p2_from_affine(res, res);
+        }
+
         public P2(P2Affine affine) : this(true)
         { blst_p2_from_affine(point, affine.point); }
 
         public readonly P2 Dup() => new(this);
         public readonly P2Affine ToAffine() => new(this);
-        public readonly Span<byte> Serialize()
+        public readonly byte[] Serialize()
         {
-            Span<byte> ret = new byte[2 * P2_COMPRESSED_SZ];
+            byte[] ret = new byte[2 * P2_COMPRESSED_SZ];
             blst_p2_serialize(ret, point);
             return ret;
         }
-        public readonly Span<byte> Compress()
+        public readonly byte[] Compress()
         {
-            Span<byte> ret = new byte[P2_COMPRESSED_SZ];
+            byte[] ret = new byte[P2_COMPRESSED_SZ];
             blst_p2_compress(ret, point);
             return ret;
         }
@@ -1155,18 +1145,8 @@ public static partial class Bls
             blst_p2_mult(point, point, val, (size_t)(len * 8));
             return this;
         }
-        private readonly unsafe P2 MultiMultRawAffines(long* rawAffinesPtr, byte[] rawScalars, int npoints)
+        private readonly unsafe P2 MultiMultRawAffines(long* rawAffinesPtr, Span<byte> rawScalars, int npoints)
         {
-            // byte[] rawScalars = new byte[((size_t)npoints * 32)];
-            // for (int i = 0; i < npoints; i++)
-            // {
-            //     byte[] tmp = scalars[i].ToLendian();
-            //     for (int j = 0; j < 32; j++)
-            //     {
-            //         rawScalars[(i * 32) + j] = tmp[j];
-            //     }
-            // }
-
             fixed (byte* rawScalarsPtr = rawScalars)
             {
                 long*[] rawAffinesWrapper = [rawAffinesPtr, null];
@@ -1183,27 +1163,10 @@ public static partial class Bls
             return this;
         }
 
-        public readonly unsafe P2 MultiMult(long[] rawPoints, byte[] rawScalars, int npoints)
+        // points at infinity should be filtered out, scalars little endian
+        public readonly unsafe P2 MultiMult(Span<long> rawPoints, Span<byte> rawScalars, int npoints)
         {
-            // long[] rawPoints = new long[points.Length * 36];
-            long[] rawAffines = new long[npoints * 24];
-
-            // int i = 0;
-            // foreach (P2 point in points)
-            // {
-            //     // filter out zero elements
-            //     if (point.IsInf())
-            //     {
-            //         continue;
-            //     }
-
-            //     for (int j = 0; j < 36; j++)
-            //     {
-            //         rawPoints[i * 36 + j] = point.point[j];
-            //     }
-
-            //     i++;
-            // }
+            Span<long> rawAffines = stackalloc long[npoints * 24];
 
             fixed (long* rawPointsPtr = rawPoints)
             {
