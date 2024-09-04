@@ -220,15 +220,15 @@ public static partial class Bls
             }
         }
 
-        public readonly Span<byte> ToBendian()
+        public readonly byte[] ToBendian()
         {
-            Span<byte> ret = new byte[32];
+            byte[] ret = new byte[32];
             blst_bendian_from_scalar(ret, key);
             return ret;
         }
-        public readonly Span<byte> ToLendian()
+        public readonly byte[] ToLendian()
         {
-            Span<byte> ret = new byte[32];
+            byte[] ret = new byte[32];
             blst_lendian_from_scalar(ret, key);
             return ret;
         }
@@ -1071,13 +1071,13 @@ public static partial class Bls
 
         public readonly unsafe P2 MapTo(ReadOnlySpan<byte> c0, ReadOnlySpan<byte> c1)
         {
-            long[] u0 = new long[6];
-            long[] u1 = new long[6];
+            Span<long> u0 = stackalloc long[6];
+            Span<long> u1 = stackalloc long[6];
 
             blst_fp_from_bendian(u0, c0);
             blst_fp_from_bendian(u1, c1);
 
-            long[] u = [.. u0, .. u1];
+            Span<long> u = [.. u0, .. u1];
 
             blst_map_to_g2(Self(), u, null);
             return this;
@@ -1149,7 +1149,7 @@ public static partial class Bls
                 byte*[] rawScalarsWrapper = [rawScalarsPtr, null];
 
                 size_t scratchSize = blst_p2s_mult_pippenger_scratch_sizeof((size_t)npoints) / sizeof(long);
-                long[] scratch = new long[scratchSize];
+                Span<long> scratch = stackalloc long[(int)scratchSize];
 
                 fixed (long** rawAffinesWrapperPtr = rawAffinesWrapper)
                 fixed (byte** rawScalarsWrapperPtr = rawScalarsWrapper)
