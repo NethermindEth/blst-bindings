@@ -640,19 +640,17 @@ public static partial class Bls
             blst_map_to_g1(Self(), u, null);
             return this;
         }
-        public readonly P1 HashTo(ReadOnlySpan<byte> msg, string DST = "", ReadOnlySpan<byte> aug = default)
+        public readonly P1 HashTo(ReadOnlySpan<byte> msg, ReadOnlySpan<byte> DST = default, ReadOnlySpan<byte> aug = default)
         {
-            byte[] dst = Encoding.UTF8.GetBytes(DST);
             blst_hash_to_g1(Self(), msg, (size_t)msg.Length,
-                                    dst, (size_t)dst.Length,
+                                    DST, (size_t)DST.Length,
                                     aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
-        public readonly P1 EncodeTo(ReadOnlySpan<byte> msg, string DST = "", ReadOnlySpan<byte> aug = default)
+        public readonly P1 EncodeTo(ReadOnlySpan<byte> msg, ReadOnlySpan<byte> DST = default, ReadOnlySpan<byte> aug = default)
         {
-            byte[] dst = Encoding.UTF8.GetBytes(DST);
             blst_encode_to_g1(Self(), msg, (size_t)msg.Length,
-                                      dst, (size_t)dst.Length,
+                                      DST, (size_t)DST.Length,
                                       aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
@@ -1084,19 +1082,17 @@ public static partial class Bls
             blst_map_to_g2(Self(), u, null);
             return this;
         }
-        public readonly P2 HashTo(ReadOnlySpan<byte> msg, string DST = "", ReadOnlySpan<byte> aug = default)
+        public readonly P2 HashTo(ReadOnlySpan<byte> msg, ReadOnlySpan<byte> DST = default, ReadOnlySpan<byte> aug = default)
         {
-            byte[] dst = Encoding.UTF8.GetBytes(DST);
             blst_hash_to_g2(Self(), msg, (size_t)msg.Length,
-                                    dst, (size_t)dst.Length,
+                                    DST, (size_t)DST.Length,
                                     aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
-        public readonly P2 EncodeTo(ReadOnlySpan<byte> msg, string DST = "", ReadOnlySpan<byte> aug = default)
+        public readonly P2 EncodeTo(ReadOnlySpan<byte> msg, ReadOnlySpan<byte> DST = default, ReadOnlySpan<byte> aug = default)
         {
-            byte[] dst = Encoding.UTF8.GetBytes(DST);
             blst_encode_to_g2(Self(), msg, (size_t)msg.Length,
-                                      dst, (size_t)dst.Length,
+                                      DST, (size_t)DST.Length,
                                       aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
@@ -1344,17 +1340,20 @@ public static partial class Bls
         private static readonly int sz = (int)blst_pairing_sizeof() / sizeof(long);
 
         internal Pairing(long[] p) { ctx = p; }
-        public Pairing(bool hashOrEncode = false, string DST = "")
+        public Pairing(bool hashOrEncode = false, ReadOnlySpan<byte> DST = default)
         {
-            byte[] dst = Encoding.UTF8.GetBytes(DST);
-            int dst_len = dst.Length;
+            int dst_len = DST.Length;
             int add_len = dst_len != 0 ? (dst_len + sizeof(long) - 1) / sizeof(long) : 1;
-            Array.Resize(ref dst, add_len * sizeof(long));
+
+            Span<byte> dst = stackalloc byte[add_len * sizeof(long)];
+            DST.CopyTo(dst);
 
             ctx = new long[sz + add_len];
 
             for (int i = 0; i < add_len; i++)
-                ctx[sz + i] = BitConverter.ToInt64(dst, i * sizeof(long));
+            {
+                ctx[sz + i] = BitConverter.ToInt64(dst[(i * sizeof(long))..]);
+            }
 
             blst_pairing_init(ctx, hashOrEncode, ref ctx[sz], (size_t)dst_len);
         }
