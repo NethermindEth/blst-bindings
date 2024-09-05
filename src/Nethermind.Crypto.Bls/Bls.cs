@@ -263,11 +263,10 @@ public static partial class Bls
 
     public ref struct Scalar
     {
-        internal Span<byte> val;
+        internal Span<byte> val = new byte[32];
 
         public Scalar(ReadOnlySpan<byte> inp, ByteOrder order = ByteOrder.BigEndian)
         {
-            val = new byte[32];
             switch (order)
             {
                 case ByteOrder.BigEndian: FromBendian(inp); break;
@@ -404,7 +403,10 @@ public static partial class Bls
         private P1Affine(long[] p) { point = p; }
         private P1Affine(bool _) { point = new long[sz]; }
         private P1Affine(P1Affine p)
-            => p.point.CopyTo(point);
+        {
+            point = new long[sz];
+            p.point.CopyTo(point);
+        }
 
         public P1Affine(ReadOnlySpan<byte> inp) : this(true)
         {
@@ -565,8 +567,11 @@ public static partial class Bls
 
         private P1(long[] p) { point = p; }
         private P1(bool _) { point = new long[sz]; }
-        private P1(P1 p) { p.point.CopyTo(point); }
-        private readonly Span<long> Self() => point;
+        private P1(P1 p)
+        {
+            point = new long[sz];
+            p.point.CopyTo(point);
+        }
 
         public P1(SecretKey sk) : this(true)
         { blst_sk_to_pk_in_g1(point, sk.key); }
@@ -637,19 +642,19 @@ public static partial class Bls
         {
             long[] u = new long[6];
             blst_fp_from_bendian(u, fp);
-            blst_map_to_g1(Self(), u, null);
+            blst_map_to_g1(point, u, null);
             return this;
         }
         public readonly P1 HashTo(ReadOnlySpan<byte> msg, ReadOnlySpan<byte> DST = default, ReadOnlySpan<byte> aug = default)
         {
-            blst_hash_to_g1(Self(), msg, (size_t)msg.Length,
+            blst_hash_to_g1(point, msg, (size_t)msg.Length,
                                     DST, (size_t)DST.Length,
                                     aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
         public readonly P1 EncodeTo(ReadOnlySpan<byte> msg, ReadOnlySpan<byte> DST = default, ReadOnlySpan<byte> aug = default)
         {
-            blst_encode_to_g1(Self(), msg, (size_t)msg.Length,
+            blst_encode_to_g1(point, msg, (size_t)msg.Length,
                                       DST, (size_t)DST.Length,
                                       aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
@@ -730,7 +735,7 @@ public static partial class Bls
                 fixed (long** rawAffinesWrapperPtr = rawAffinesWrapper)
                 fixed (byte** rawScalarsWrapperPtr = rawScalarsWrapper)
                 fixed (long* scratchPtr = scratch)
-                    blst_p1s_mult_pippenger(Self(), rawAffinesWrapperPtr, (size_t)npoints, rawScalarsWrapperPtr, 256, scratchPtr);
+                    blst_p1s_mult_pippenger(point, rawAffinesWrapperPtr, (size_t)npoints, rawScalarsWrapperPtr, 256, scratchPtr);
             }
             return this;
         }
@@ -842,7 +847,11 @@ public static partial class Bls
 
         private P2Affine(long[] p) { point = p; }
         private P2Affine(bool _) { point = new long[sz]; }
-        private P2Affine(P2Affine p) { p.point.CopyTo(point); }
+        private P2Affine(P2Affine p)
+        {
+            point = new long[sz];
+            p.point.CopyTo(point);
+        }
 
         public P2Affine(ReadOnlySpan<byte> inp) : this(true)
         {
@@ -997,8 +1006,11 @@ public static partial class Bls
 
         private P2(long[] p) { point = p; }
         private P2(bool _) { point = new long[sz]; }
-        private P2(P2 p) { p.point.CopyTo(point); }
-        private readonly Span<long> Self() => point;
+        private P2(P2 p)
+        {
+            point = new long[sz];
+            p.point.CopyTo(point);
+        }
 
         public P2(SecretKey sk) : this(true)
         { blst_sk_to_pk_in_g2(point, sk.key); }
@@ -1079,19 +1091,19 @@ public static partial class Bls
 
             Span<long> u = [.. u0, .. u1];
 
-            blst_map_to_g2(Self(), u, null);
+            blst_map_to_g2(point, u, null);
             return this;
         }
         public readonly P2 HashTo(ReadOnlySpan<byte> msg, ReadOnlySpan<byte> DST = default, ReadOnlySpan<byte> aug = default)
         {
-            blst_hash_to_g2(Self(), msg, (size_t)msg.Length,
+            blst_hash_to_g2(point, msg, (size_t)msg.Length,
                                     DST, (size_t)DST.Length,
                                     aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
         public readonly P2 EncodeTo(ReadOnlySpan<byte> msg, ReadOnlySpan<byte> DST = default, ReadOnlySpan<byte> aug = default)
         {
-            blst_encode_to_g2(Self(), msg, (size_t)msg.Length,
+            blst_encode_to_g2(point, msg, (size_t)msg.Length,
                                       DST, (size_t)DST.Length,
                                       aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
@@ -1154,7 +1166,7 @@ public static partial class Bls
                 fixed (long** rawAffinesWrapperPtr = rawAffinesWrapper)
                 fixed (byte** rawScalarsWrapperPtr = rawScalarsWrapper)
                 fixed (long* scratchPtr = scratch)
-                    blst_p2s_mult_pippenger(Self(), rawAffinesWrapperPtr, (size_t)npoints, rawScalarsWrapperPtr, 256, scratchPtr);
+                    blst_p2s_mult_pippenger(point, rawAffinesWrapperPtr, (size_t)npoints, rawScalarsWrapperPtr, 256, scratchPtr);
             }
             return this;
         }
@@ -1260,7 +1272,11 @@ public static partial class Bls
 
         internal PT(long[] p) { fp12 = p; }
         internal PT(bool _) { fp12 = new long[sz]; }
-        private PT(PT orig) { orig.fp12.CopyTo(fp12); }
+        private PT(PT orig)
+        {
+            fp12 = new long[sz];
+            orig.fp12.CopyTo(fp12);
+        }
 
         public PT(P1Affine p) : this(true)
         { blst_aggregated_in_g1(fp12, p.point); }
@@ -1339,7 +1355,11 @@ public static partial class Bls
 
         private static readonly int sz = (int)blst_pairing_sizeof() / sizeof(long);
 
-        internal Pairing(long[] p) { ctx = p; }
+        internal Pairing(long[] p)
+        {
+            ctx = new long[sz];
+            ctx = p;
+        }
         public Pairing(bool hashOrEncode = false, ReadOnlySpan<byte> DST = default)
         {
             int dst_len = DST.Length;
