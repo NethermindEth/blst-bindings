@@ -408,7 +408,7 @@ public static partial class Bls
             p.point.CopyTo(point);
         }
 
-        public P1Affine(ReadOnlySpan<byte> inp) : this(true)
+        public P1Affine(scoped ReadOnlySpan<byte> inp) : this(true)
         {
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P1_COMPRESSED_SZ
@@ -575,7 +575,7 @@ public static partial class Bls
 
         public P1(SecretKey sk) : this(true)
         { blst_sk_to_pk_in_g1(point, sk.key); }
-        public P1(ReadOnlySpan<byte> inp) : this(true)
+        public P1(scoped ReadOnlySpan<byte> inp) : this(true)
         {
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P1_COMPRESSED_SZ
@@ -645,14 +645,14 @@ public static partial class Bls
             blst_map_to_g1(point, u, null);
             return this;
         }
-        public readonly P1 HashTo(ReadOnlySpan<byte> msg, ReadOnlySpan<byte> DST = default, ReadOnlySpan<byte> aug = default)
+        public readonly P1 HashTo(scoped ReadOnlySpan<byte> msg, ReadOnlySpan<byte> DST = default, ReadOnlySpan<byte> aug = default)
         {
             blst_hash_to_g1(point, msg, (size_t)msg.Length,
                                     DST, (size_t)DST.Length,
                                     aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
-        public readonly P1 EncodeTo(ReadOnlySpan<byte> msg, ReadOnlySpan<byte> DST = default, ReadOnlySpan<byte> aug = default)
+        public readonly P1 EncodeTo(scoped ReadOnlySpan<byte> msg, ReadOnlySpan<byte> DST = default, ReadOnlySpan<byte> aug = default)
         {
             blst_encode_to_g1(point, msg, (size_t)msg.Length,
                                       DST, (size_t)DST.Length,
@@ -677,7 +677,7 @@ public static partial class Bls
             }
         }
 
-        public readonly P1 Mult(ReadOnlySpan<byte> scalar)
+        public readonly P1 Mult(scoped ReadOnlySpan<byte> scalar)
         {
             blst_p1_mult(point, point, scalar, (size_t)(scalar.Length * 8));
             return this;
@@ -722,7 +722,7 @@ public static partial class Bls
             scalar.FromBendian(val);
         }
 
-        private readonly unsafe P1 MultiMultRawAffines(long* rawAffinesPtr, Span<byte> rawScalars, int npoints)
+        private readonly unsafe P1 MultiMultRawAffines(long* rawAffinesPtr, scoped Span<byte> rawScalars, int npoints)
         {
             fixed (byte* rawScalarsPtr = rawScalars)
             {
@@ -741,7 +741,7 @@ public static partial class Bls
         }
 
         // points at infinity should be filtered out, scalars little endian
-        public readonly unsafe P1 MultiMult(Span<long> rawPoints, Span<byte> rawScalars, int npoints)
+        public readonly unsafe P1 MultiMult(scoped Span<long> rawPoints, scoped Span<byte> rawScalars, int npoints)
         {
             Span<long> rawAffines = stackalloc long[npoints * 12];
 
@@ -853,7 +853,7 @@ public static partial class Bls
             p.point.CopyTo(point);
         }
 
-        public P2Affine(ReadOnlySpan<byte> inp) : this(true)
+        public P2Affine(scoped ReadOnlySpan<byte> inp) : this(true)
         {
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P2_COMPRESSED_SZ
@@ -1014,7 +1014,7 @@ public static partial class Bls
 
         public P2(SecretKey sk) : this(true)
         { blst_sk_to_pk_in_g2(point, sk.key); }
-        public P2(ReadOnlySpan<byte> inp) : this(true)
+        public P2(scoped ReadOnlySpan<byte> inp) : this(true)
         {
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P2_COMPRESSED_SZ
@@ -1081,7 +1081,7 @@ public static partial class Bls
         public readonly bool IsEqual(P2 p)
             => blst_p2_is_equal(point, p.point);
 
-        public readonly unsafe P2 MapTo(ReadOnlySpan<byte> c0, ReadOnlySpan<byte> c1)
+        public readonly unsafe P2 MapTo(scoped ReadOnlySpan<byte> c0, scoped ReadOnlySpan<byte> c1)
         {
             Span<long> u0 = stackalloc long[6];
             Span<long> u1 = stackalloc long[6];
@@ -1094,14 +1094,14 @@ public static partial class Bls
             blst_map_to_g2(point, u, null);
             return this;
         }
-        public readonly P2 HashTo(ReadOnlySpan<byte> msg, ReadOnlySpan<byte> DST = default, ReadOnlySpan<byte> aug = default)
+        public readonly P2 HashTo(scoped ReadOnlySpan<byte> msg, scoped ReadOnlySpan<byte> DST = default, scoped ReadOnlySpan<byte> aug = default)
         {
             blst_hash_to_g2(point, msg, (size_t)msg.Length,
                                     DST, (size_t)DST.Length,
                                     aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
-        public readonly P2 EncodeTo(ReadOnlySpan<byte> msg, ReadOnlySpan<byte> DST = default, ReadOnlySpan<byte> aug = default)
+        public readonly P2 EncodeTo(scoped ReadOnlySpan<byte> msg, scoped ReadOnlySpan<byte> DST = default, scoped ReadOnlySpan<byte> aug = default)
         {
             blst_encode_to_g2(point, msg, (size_t)msg.Length,
                                       DST, (size_t)DST.Length,
@@ -1126,7 +1126,7 @@ public static partial class Bls
             }
         }
 
-        public readonly P2 Mult(ReadOnlySpan<byte> scalar)
+        public readonly P2 Mult(scoped ReadOnlySpan<byte> scalar)
         {
             blst_p2_mult(point, point, scalar, (size_t)(scalar.Length * 8));
             return this;
@@ -1153,7 +1153,7 @@ public static partial class Bls
             blst_p2_mult(point, point, val, (size_t)(len * 8));
             return this;
         }
-        private readonly unsafe P2 MultiMultRawAffines(long* rawAffinesPtr, Span<byte> rawScalars, int npoints)
+        private readonly unsafe P2 MultiMultRawAffines(long* rawAffinesPtr, scoped Span<byte> rawScalars, int npoints)
         {
             fixed (byte* rawScalarsPtr = rawScalars)
             {
@@ -1172,7 +1172,7 @@ public static partial class Bls
         }
 
         // points at infinity should be filtered out, scalars little endian
-        public readonly unsafe P2 MultiMult(Span<long> rawPoints, Span<byte> rawScalars, int npoints)
+        public readonly unsafe P2 MultiMult(scoped Span<long> rawPoints, scoped Span<byte> rawScalars, int npoints)
         {
             Span<long> rawAffines = stackalloc long[npoints * 24];
 
@@ -1360,7 +1360,7 @@ public static partial class Bls
             ctx = new long[sz];
             ctx = p;
         }
-        public Pairing(bool hashOrEncode = false, ReadOnlySpan<byte> DST = default)
+        public Pairing(bool hashOrEncode = false, scoped ReadOnlySpan<byte> DST = default)
         {
             int dst_len = DST.Length;
             int add_len = dst_len != 0 ? (dst_len + sizeof(long) - 1) / sizeof(long) : 1;
