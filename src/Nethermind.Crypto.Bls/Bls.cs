@@ -730,7 +730,7 @@ public static partial class Bls
                 byte*[] rawScalarsWrapper = [rawScalarsPtr, null];
 
                 size_t scratchSize = blst_p1s_mult_pippenger_scratch_sizeof((size_t)npoints) / sizeof(long);
-                Span<long> scratch = stackalloc long[(int)scratchSize];
+                Span<long> scratch = new long[(int)scratchSize];
 
                 fixed (long** rawAffinesWrapperPtr = rawAffinesWrapper)
                 fixed (byte** rawScalarsWrapperPtr = rawScalarsWrapper)
@@ -743,7 +743,7 @@ public static partial class Bls
         // points at infinity should be filtered out, scalars little endian
         public readonly unsafe P1 MultiMult(scoped Span<long> rawPoints, scoped Span<byte> rawScalars, int npoints)
         {
-            Span<long> rawAffines = stackalloc long[npoints * 12];
+            Span<long> rawAffines = new long[npoints * 12];
 
             fixed (long* rawPointsPtr = rawPoints)
             {
@@ -1161,7 +1161,7 @@ public static partial class Bls
                 byte*[] rawScalarsWrapper = [rawScalarsPtr, null];
 
                 size_t scratchSize = blst_p2s_mult_pippenger_scratch_sizeof((size_t)npoints) / sizeof(long);
-                Span<long> scratch = stackalloc long[(int)scratchSize];
+                Span<long> scratch = new long[(int)scratchSize];
 
                 fixed (long** rawAffinesWrapperPtr = rawAffinesWrapper)
                 fixed (byte** rawScalarsWrapperPtr = rawScalarsWrapper)
@@ -1174,7 +1174,7 @@ public static partial class Bls
         // points at infinity should be filtered out, scalars little endian
         public readonly unsafe P2 MultiMult(scoped Span<long> rawPoints, scoped Span<byte> rawScalars, int npoints)
         {
-            Span<long> rawAffines = stackalloc long[npoints * 24];
+            Span<long> rawAffines = new long[npoints * 24];
 
             fixed (long* rawPointsPtr = rawPoints)
             {
@@ -1365,7 +1365,7 @@ public static partial class Bls
             int dst_len = DST.Length;
             int add_len = dst_len != 0 ? (dst_len + sizeof(long) - 1) / sizeof(long) : 1;
 
-            Span<byte> dst = stackalloc byte[add_len * sizeof(long)];
+            Span<byte> dst = new byte[add_len * sizeof(long)];
             DST.CopyTo(dst);
 
             ctx = new long[sz + add_len];
