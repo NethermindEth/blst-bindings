@@ -399,26 +399,26 @@ public static partial class Bls
     {
         public readonly Span<long> Point;
 
-        private static readonly int sz = (int)blst_p1_affine_sizeof() / sizeof(long);
+        public static readonly int Sz = (int)blst_p1_affine_sizeof() / sizeof(long);
 
         public P1Affine(P1Affine p)
         {
-            Point = new long[sz];
+            Point = new long[Sz];
             p.Point.CopyTo(Point);
         }
 
         public P1Affine(Span<long> p)
         {
-            if (p.Length < sz)
+            if (p.Length < Sz)
             {
                 throw new Exception(ERROR.WRONGSIZE);
             }
-            Point = p[..sz];
+            Point = p[..Sz];
         }
 
         public P1Affine()
         {
-            Point = new long[sz];
+            Point = new long[Sz];
         }
 
         public P1Affine(scoped ReadOnlySpan<byte> inp) : this()
@@ -481,8 +481,8 @@ public static partial class Bls
 
         public static P1Affine Generator()
         {
-            long[] res = new long[sz];
-            Marshal.Copy(blst_p1_generator(), res, 0, sz);
+            long[] res = new long[Sz];
+            Marshal.Copy(blst_p1_generator(), res, 0, Sz);
             return new(res);
         }
     }
@@ -579,26 +579,26 @@ public static partial class Bls
     {
         public readonly Span<long> Point;
 
-        private static readonly int sz = (int)blst_p1_sizeof() / sizeof(long);
+        public static readonly int Sz = (int)blst_p1_sizeof() / sizeof(long);
 
         public P1(P1 p)
         {
-            Point = new long[sz];
+            Point = new long[Sz];
             p.Point.CopyTo(Point);
         }
 
         public P1(Span<long> p)
         {
-            if (p.Length < sz)
+            if (p.Length < Sz)
             {
                 throw new Exception(ERROR.WRONGSIZE);
             }
-            Point = p[..sz];
+            Point = p[..Sz];
         }
 
         public P1()
         {
-            Point = new long[sz];
+            Point = new long[Sz];
         }
 
         public P1(SecretKey sk) : this()
@@ -799,8 +799,8 @@ public static partial class Bls
 
         public static P1 Generator()
         {
-            long[] res = new long[sz];
-            Marshal.Copy(blst_p1_generator(), res, 0, sz);
+            long[] res = new long[Sz];
+            Marshal.Copy(blst_p1_generator(), res, 0, Sz);
             return new(res);
         }
     }
@@ -875,26 +875,26 @@ public static partial class Bls
     {
         public readonly Span<long> Point;
 
-        private static readonly int sz = (int)blst_p2_affine_sizeof() / sizeof(long);
+        public static readonly int Sz = (int)blst_p2_affine_sizeof() / sizeof(long);
 
         public P2Affine(P2Affine p)
         {
-            Point = new long[sz];
+            Point = new long[Sz];
             p.Point.CopyTo(Point);
         }
 
         public P2Affine(Span<long> p)
         {
-            if (p.Length < sz)
+            if (p.Length < Sz)
             {
                 throw new Exception(ERROR.WRONGSIZE);
             }
-            Point = p[..sz];
+            Point = p[..Sz];
         }
 
         public P2Affine()
         {
-            Point = new long[sz];
+            Point = new long[Sz];
         }
 
         public P2Affine(scoped ReadOnlySpan<byte> inp) : this()
@@ -958,8 +958,8 @@ public static partial class Bls
 
         public static P2Affine Generator()
         {
-            long[] res = new long[sz];
-            Marshal.Copy(blst_p2_generator(), res, 0, sz);
+            long[] res = new long[Sz];
+            Marshal.Copy(blst_p2_generator(), res, 0, Sz);
             return new(res);
         }
     }
@@ -1050,26 +1050,26 @@ public static partial class Bls
     {
         public readonly Span<long> Point;
 
-        private static readonly int sz = (int)blst_p2_sizeof() / sizeof(long);
+        public static readonly int Sz = (int)blst_p2_sizeof() / sizeof(long);
 
         public P2(P2 p)
         {
-            Point = new long[sz];
+            Point = new long[Sz];
             p.Point.CopyTo(Point);
         }
 
         public P2(Span<long> p)
         {
-            if (p.Length < sz)
+            if (p.Length < Sz)
             {
                 throw new Exception(ERROR.WRONGSIZE);
             }
-            Point = p[..sz];
+            Point = p[..Sz];
         }
 
         public P2()
         {
-            Point = new long[sz];
+            Point = new long[Sz];
         }
 
         public P2(SecretKey sk) : this()
@@ -1262,8 +1262,8 @@ public static partial class Bls
 
         public static P2 Generator()
         {
-            long[] res = new long[sz];
-            Marshal.Copy(blst_p2_generator(), res, 0, sz);
+            long[] res = new long[Sz];
+            Marshal.Copy(blst_p2_generator(), res, 0, Sz);
             return new(res);
         }
     }
@@ -1332,26 +1332,26 @@ public static partial class Bls
     {
         public readonly Span<long> Fp12;
 
-        private static readonly int sz = (int)blst_fp12_sizeof() / sizeof(long);
+        public static readonly int Sz = (int)blst_fp12_sizeof() / sizeof(long);
 
         public PT(PT orig)
         {
-            Fp12 = new long[sz];
+            Fp12 = new long[Sz];
             orig.Fp12.CopyTo(Fp12);
         }
 
         public PT(Span<long> p)
         {
-            if (p.Length < sz)
+            if (p.Length < Sz)
             {
                 throw new Exception(ERROR.WRONGSIZE);
             }
-            Fp12 = p[..sz];
+            Fp12 = p[..Sz];
         }
 
         public PT()
         {
-            Fp12 = new long[sz];
+            Fp12 = new long[Sz];
         }
 
         public PT(P1Affine p) : this()
@@ -1394,8 +1394,8 @@ public static partial class Bls
 
         public static PT One()
         {
-            long[] res = new long[sz];
-            Marshal.Copy(blst_fp12_one(), res, 0, sz);
+            long[] res = new long[Sz];
+            Marshal.Copy(blst_fp12_one(), res, 0, Sz);
             return new(res);
         }
     }
@@ -1429,7 +1429,7 @@ public static partial class Bls
     {
         private readonly Span<long> ctx;
 
-        private static readonly int sz = (int)blst_pairing_sizeof() / sizeof(long);
+        public static readonly int Sz = (int)blst_pairing_sizeof() / sizeof(long);
 
         public Pairing(bool hashOrEncode = false, scoped ReadOnlySpan<byte> DST = default)
         {
@@ -1439,14 +1439,14 @@ public static partial class Bls
             Span<byte> dst = new byte[add_len * sizeof(long)];
             DST.CopyTo(dst);
 
-            ctx = new long[sz + add_len];
+            ctx = new long[Sz + add_len];
 
             for (int i = 0; i < add_len; i++)
             {
-                ctx[sz + i] = BitConverter.ToInt64(dst[(i * sizeof(long))..]);
+                ctx[Sz + i] = BitConverter.ToInt64(dst[(i * sizeof(long))..]);
             }
 
-            blst_pairing_init(ctx, hashOrEncode, ref ctx[sz], (size_t)dst_len);
+            blst_pairing_init(ctx, hashOrEncode, ref ctx[Sz], (size_t)dst_len);
         }
 
         public readonly ERROR Aggregate(P1Affine pk, P2Affine sig,
@@ -1509,8 +1509,8 @@ public static partial class Bls
             => RawAggregate(q, p);
         public readonly PT AsFp12()
         {
-            long[] res = new long[sz];
-            Marshal.Copy(blst_pairing_as_fp12(ctx), res, 0, sz);
+            long[] res = new long[Sz];
+            Marshal.Copy(blst_pairing_as_fp12(ctx), res, 0, Sz);
             return new(res);
         }
     }
