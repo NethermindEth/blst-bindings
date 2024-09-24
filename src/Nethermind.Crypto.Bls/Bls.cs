@@ -66,6 +66,7 @@ public static partial class Bls
         VERIFYFAIL,
         PKISINFINITY,
         BADSCALAR,
+        WRONGSIZE,
     }
 
     public class Exception(ERROR err) : ApplicationException
@@ -396,19 +397,34 @@ public static partial class Bls
 
     public readonly ref struct P1Affine
     {
-        internal readonly Span<long> point;
+        public readonly Span<long> Point;
 
         private static readonly int sz = (int)blst_p1_affine_sizeof() / sizeof(long);
 
-        private P1Affine(long[] p) { point = p; }
-        private P1Affine(bool _) { point = new long[sz]; }
-        private P1Affine(P1Affine p)
+        public P1Affine(P1Affine p)
         {
-            point = new long[sz];
-            p.point.CopyTo(point);
+            Point = new long[sz];
+            p.Point.CopyTo(Point);
         }
 
-        public P1Affine(scoped ReadOnlySpan<byte> inp) : this(true)
+        public P1Affine(Span<long> p)
+        {
+            if (p.Length < sz)
+            {
+                throw new Exception(ERROR.WRONGSIZE);
+            }
+            Point = p[..sz];
+        }
+
+        public P1Affine()
+        {
+            Point = new long[sz];
+        }
+
+        public P1Affine(scoped ReadOnlySpan<byte> inp) : this()
+            => Decode(inp);
+
+        public void Decode(scoped ReadOnlySpan<byte> inp)
         {
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P1_COMPRESSED_SZ
@@ -417,38 +433,38 @@ public static partial class Bls
                 throw new Exception(ERROR.BADENCODING);
             }
 
-            ERROR err = blst_p1_deserialize(point, inp);
+            ERROR err = blst_p1_deserialize(Point, inp);
             if (err != ERROR.SUCCESS)
             {
                 throw new Exception(err);
             }
         }
-        public P1Affine(P1 jacobian) : this(true)
-            => blst_p1_to_affine(point, jacobian.point);
+        public P1Affine(P1 jacobian) : this()
+            => blst_p1_to_affine(Point, jacobian.Point);
 
         public P1Affine Dup() => new(this);
         public P1 ToJacobian() => new(this);
         public byte[] Serialize()
         {
             byte[] ret = new byte[2 * P1_COMPRESSED_SZ];
-            blst_p1_affine_serialize(ret, point);
+            blst_p1_affine_serialize(ret, Point);
             return ret;
         }
         public byte[] Compress()
         {
             byte[] ret = new byte[P1_COMPRESSED_SZ];
-            blst_p1_affine_compress(ret, point);
+            blst_p1_affine_compress(ret, Point);
             return ret;
         }
 
         public bool OnCurve()
-            => blst_p1_affine_on_curve(point);
+            => blst_p1_affine_on_curve(Point);
         public bool InGroup()
-            => blst_p1_affine_in_g1(point);
+            => blst_p1_affine_in_g1(Point);
         public bool IsInf()
-            => blst_p1_affine_is_inf(point);
+            => blst_p1_affine_is_inf(Point);
         public bool IsEqual(P1Affine p)
-            => blst_p1_affine_is_equal(point, p.point);
+            => blst_p1_affine_is_equal(Point, p.Point);
 
         //         ERROR core_verify(P2_Affine pk, bool hash_or_encode,
         // #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
@@ -561,21 +577,37 @@ public static partial class Bls
 
     public readonly ref struct P1
     {
-        internal readonly Span<long> point;
+        public readonly Span<long> Point;
 
         private static readonly int sz = (int)blst_p1_sizeof() / sizeof(long);
 
-        private P1(long[] p) { point = p; }
-        private P1(bool _) { point = new long[sz]; }
-        private P1(P1 p)
+        public P1(P1 p)
         {
-            point = new long[sz];
-            p.point.CopyTo(point);
+            Point = new long[sz];
+            p.Point.CopyTo(Point);
         }
 
-        public P1(SecretKey sk) : this(true)
-        { blst_sk_to_pk_in_g1(point, sk.key); }
-        public P1(scoped ReadOnlySpan<byte> inp) : this(true)
+        public P1(Span<long> p)
+        {
+            if (p.Length < sz)
+            {
+                throw new Exception(ERROR.WRONGSIZE);
+            }
+            Point = p[..sz];
+        }
+
+        public P1()
+        {
+            Point = new long[sz];
+        }
+
+        public P1(SecretKey sk) : this()
+        { blst_sk_to_pk_in_g1(Point, sk.key); }
+
+        public P1(scoped ReadOnlySpan<byte> inp) : this()
+            => Decode(inp);
+
+        public void Decode(scoped ReadOnlySpan<byte> inp)
         {
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P1_COMPRESSED_SZ
@@ -586,90 +618,90 @@ public static partial class Bls
 
             if (len == 2 * P1_COMPRESSED_SZ)
             {
-                blst_fp_from_bendian(point, inp[..48]);
-                blst_fp_from_bendian(point[6..], inp[48..]);
+                blst_fp_from_bendian(Point, inp[..48]);
+                blst_fp_from_bendian(Point[6..], inp[48..]);
             }
             else
             {
-                ERROR err = blst_p1_deserialize(point, inp);
+                ERROR err = blst_p1_deserialize(Point, inp);
                 if (err != ERROR.SUCCESS)
                     throw new Exception(err);
             }
 
-            blst_p1_from_affine(point, point);
+            blst_p1_from_affine(Point, Point);
         }
 
-        public static void Decode(Span<long> res, ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2)
+        public void Decode(ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2)
         {
             if (fp1.Length != 48 || fp2.Length != 48)
             {
                 throw new Exception(ERROR.BADENCODING);
             }
 
-            blst_fp_from_bendian(res, fp1);
-            blst_fp_from_bendian(res[6..], fp2);
-            blst_p1_from_affine(res, res);
+            blst_fp_from_bendian(Point, fp1);
+            blst_fp_from_bendian(Point[6..], fp2);
+            blst_p1_from_affine(Point, Point);
         }
 
-        public P1(P1Affine affine) : this(true)
-        { blst_p1_from_affine(point, affine.point); }
+        public P1(P1Affine affine) : this()
+        { blst_p1_from_affine(Point, affine.Point); }
 
         public readonly P1 Dup() => new(this);
         public readonly P1Affine ToAffine() => new(this);
         public readonly byte[] Serialize()
         {
             byte[] ret = new byte[2 * P1_COMPRESSED_SZ];
-            blst_p1_serialize(ret, point);
+            blst_p1_serialize(ret, Point);
             return ret;
         }
         public readonly byte[] Compress()
         {
             byte[] ret = new byte[P1_COMPRESSED_SZ];
-            blst_p1_compress(ret, point);
+            blst_p1_compress(ret, Point);
             return ret;
         }
 
         public readonly bool OnCurve()
-            => blst_p1_on_curve(point);
+            => blst_p1_on_curve(Point);
         public readonly bool InGroup()
-            => blst_p1_in_g1(point);
+            => blst_p1_in_g1(Point);
         public readonly bool IsInf()
-            => blst_p1_is_inf(point);
+            => blst_p1_is_inf(Point);
         public readonly bool IsEqual(P1 p)
-            => blst_p1_is_equal(point, p.point);
+            => blst_p1_is_equal(Point, p.Point);
 
         public readonly P1 MapTo(ReadOnlySpan<byte> fp)
         {
             long[] u = new long[6];
             blst_fp_from_bendian(u, fp);
-            blst_map_to_g1(point, u, null);
+            blst_map_to_g1(Point, u, null);
             return this;
         }
         public readonly P1 HashTo(scoped ReadOnlySpan<byte> msg, ReadOnlySpan<byte> DST = default, ReadOnlySpan<byte> aug = default)
         {
-            blst_hash_to_g1(point, msg, (size_t)msg.Length,
+            blst_hash_to_g1(Point, msg, (size_t)msg.Length,
                                     DST, (size_t)DST.Length,
                                     aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
         public readonly P1 EncodeTo(scoped ReadOnlySpan<byte> msg, ReadOnlySpan<byte> DST = default, ReadOnlySpan<byte> aug = default)
         {
-            blst_encode_to_g1(point, msg, (size_t)msg.Length,
+            blst_encode_to_g1(Point, msg, (size_t)msg.Length,
                                       DST, (size_t)DST.Length,
                                       aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
 
         public readonly P1 SignWith(SecretKey sk)
-        { blst_sign_pk_in_g2(point, point, sk.key); return this; }
+        { blst_sign_pk_in_g2(Point, Point, sk.key); return this; }
         public readonly P1 SignWith(Scalar scalar)
-        { blst_sign_pk_in_g2(point, point, scalar.val); return this; }
+        { blst_sign_pk_in_g2(Point, Point, scalar.val); return this; }
 
         public readonly void Aggregate(P1Affine inp)
         {
-            if (blst_p1_affine_in_g1(inp.point))
+            if (blst_p1_affine_in_g1(inp.Point))
             {
-                blst_p1_add_or_double_affine(point, point, inp.point);
+                blst_p1_add_or_double_affine(Point, Point, inp.Point);
             }
             else
             {
@@ -679,12 +711,12 @@ public static partial class Bls
 
         public readonly P1 Mult(scoped ReadOnlySpan<byte> scalar)
         {
-            blst_p1_mult(point, point, scalar, (size_t)(scalar.Length * 8));
+            blst_p1_mult(Point, Point, scalar, (size_t)(scalar.Length * 8));
             return this;
         }
         public readonly P1 Mult(Scalar scalar)
         {
-            blst_p1_mult(point, point, scalar.val, 255);
+            blst_p1_mult(Point, Point, scalar.val, 255);
             return this;
         }
 
@@ -694,7 +726,7 @@ public static partial class Bls
             if (scalar.Sign < 0)
             {
                 val = BigInteger.Negate(scalar).ToByteArray();
-                blst_p1_cneg(point, true);
+                blst_p1_cneg(Point, true);
             }
             else
             {
@@ -712,7 +744,7 @@ public static partial class Bls
         {
             byte[] val = PrepareMult(scalar);
             size_t len = GetSize(val);
-            blst_p1_mult(point, point, val, len * 8);
+            blst_p1_mult(Point, Point, val, len * 8);
             return this;
         }
 
@@ -735,7 +767,7 @@ public static partial class Bls
                 fixed (long** rawAffinesWrapperPtr = rawAffinesWrapper)
                 fixed (byte** rawScalarsWrapperPtr = rawScalarsWrapper)
                 fixed (long* scratchPtr = scratch)
-                    blst_p1s_mult_pippenger(point, rawAffinesWrapperPtr, (size_t)npoints, rawScalarsWrapperPtr, 256, scratchPtr);
+                    blst_p1s_mult_pippenger(Point, rawAffinesWrapperPtr, (size_t)npoints, rawScalarsWrapperPtr, 256, scratchPtr);
             }
             return this;
         }
@@ -756,14 +788,14 @@ public static partial class Bls
             fixed (long* rawAffinesPtr = rawAffines)
                 return MultiMultRawAffines(rawAffinesPtr, rawScalars, npoints);
         }
-        public readonly P1 Cneg(bool flag) { blst_p1_cneg(point, flag); return this; }
-        public readonly P1 Neg() { blst_p1_cneg(point, true); return this; }
+        public readonly P1 Cneg(bool flag) { blst_p1_cneg(Point, flag); return this; }
+        public readonly P1 Neg() { blst_p1_cneg(Point, true); return this; }
         public readonly P1 Add(P1 a)
-        { blst_p1_add_or_double(point, point, a.point); return this; }
+        { blst_p1_add_or_double(Point, Point, a.Point); return this; }
         public readonly P1 Add(P1Affine a)
-        { blst_p1_add_or_double_affine(point, point, a.point); return this; }
+        { blst_p1_add_or_double_affine(Point, Point, a.Point); return this; }
         public readonly P1 Dbl()
-        { blst_p1_double(point, point); return this; }
+        { blst_p1_double(Point, Point); return this; }
 
         public static P1 Generator()
         {
@@ -841,19 +873,34 @@ public static partial class Bls
 
     public readonly ref struct P2Affine
     {
-        internal readonly Span<long> point;
+        public readonly Span<long> Point;
 
         private static readonly int sz = (int)blst_p2_affine_sizeof() / sizeof(long);
 
-        private P2Affine(long[] p) { point = p; }
-        private P2Affine(bool _) { point = new long[sz]; }
-        private P2Affine(P2Affine p)
+        public P2Affine(P2Affine p)
         {
-            point = new long[sz];
-            p.point.CopyTo(point);
+            Point = new long[sz];
+            p.Point.CopyTo(Point);
         }
 
-        public P2Affine(scoped ReadOnlySpan<byte> inp) : this(true)
+        public P2Affine(Span<long> p)
+        {
+            if (p.Length < sz)
+            {
+                throw new Exception(ERROR.WRONGSIZE);
+            }
+            Point = p[..sz];
+        }
+
+        public P2Affine()
+        {
+            Point = new long[sz];
+        }
+
+        public P2Affine(scoped ReadOnlySpan<byte> inp) : this()
+            => Decode(inp);
+
+        public void Decode(scoped ReadOnlySpan<byte> inp)
         {
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P2_COMPRESSED_SZ
@@ -862,38 +909,39 @@ public static partial class Bls
                 throw new Exception(ERROR.BADENCODING);
             }
 
-            ERROR err = blst_p2_deserialize(point, inp);
+            ERROR err = blst_p2_deserialize(Point, inp);
             if (err != ERROR.SUCCESS)
             {
                 throw new Exception(err);
             }
         }
-        public P2Affine(P2 jacobian) : this(true)
-        { blst_p2_to_affine(point, jacobian.point); }
+
+        public P2Affine(P2 jacobian) : this()
+        { blst_p2_to_affine(Point, jacobian.Point); }
 
         public readonly P2Affine Dup() => new(this);
         public readonly P2 ToJacobian() => new(this);
         public readonly byte[] Serialize()
         {
             byte[] ret = new byte[2 * P2_COMPRESSED_SZ];
-            blst_p2_affine_serialize(ret, point);
+            blst_p2_affine_serialize(ret, Point);
             return ret;
         }
         public readonly byte[] Compress()
         {
             byte[] ret = new byte[P2_COMPRESSED_SZ];
-            blst_p2_affine_compress(ret, point);
+            blst_p2_affine_compress(ret, Point);
             return ret;
         }
 
         public readonly bool OnCurve()
-            => blst_p2_affine_on_curve(point);
+            => blst_p2_affine_on_curve(Point);
         public readonly bool InGroup()
-            => blst_p2_affine_in_g2(point);
+            => blst_p2_affine_in_g2(Point);
         public readonly bool IsInf()
-            => blst_p2_affine_is_inf(point);
+            => blst_p2_affine_is_inf(Point);
         public readonly bool IsEqual(P2Affine p)
-            => blst_p2_affine_is_equal(point, p.point);
+            => blst_p2_affine_is_equal(Point, p.Point);
 
         //         readonly ERROR core_verify(P1Affine pk, bool hash_or_encode,
         // #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
@@ -901,7 +949,7 @@ public static partial class Bls
         // #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
         //         {
         //             byte[] dst = Encoding.UTF8.GetBytes(DST);
-        //             return blst_core_verify_pk_in_g1(pk.point, point,
+        //             return blst_core_verify_pk_in_g1(pk.Point, Point,
         //                                              hash_or_encode,
         //                                              msg, (size_t)msg.Length,
         //                                              dst, (size_t)dst.Length,
@@ -1000,21 +1048,37 @@ public static partial class Bls
 
     public readonly ref struct P2
     {
-        internal readonly Span<long> point;
+        public readonly Span<long> Point;
 
         private static readonly int sz = (int)blst_p2_sizeof() / sizeof(long);
 
-        private P2(long[] p) { point = p; }
-        private P2(bool _) { point = new long[sz]; }
-        private P2(P2 p)
+        public P2(P2 p)
         {
-            point = new long[sz];
-            p.point.CopyTo(point);
+            Point = new long[sz];
+            p.Point.CopyTo(Point);
         }
 
-        public P2(SecretKey sk) : this(true)
-        { blst_sk_to_pk_in_g2(point, sk.key); }
-        public P2(scoped ReadOnlySpan<byte> inp) : this(true)
+        public P2(Span<long> p)
+        {
+            if (p.Length < sz)
+            {
+                throw new Exception(ERROR.WRONGSIZE);
+            }
+            Point = p[..sz];
+        }
+
+        public P2()
+        {
+            Point = new long[sz];
+        }
+
+        public P2(SecretKey sk) : this()
+        { blst_sk_to_pk_in_g2(Point, sk.key); }
+
+        public P2(scoped ReadOnlySpan<byte> inp) : this()
+            => Decode(inp);
+
+        public void Decode(scoped ReadOnlySpan<byte> inp)
         {
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P2_COMPRESSED_SZ
@@ -1025,61 +1089,61 @@ public static partial class Bls
 
             if (len == 2 * P2_COMPRESSED_SZ)
             {
-                blst_fp_from_bendian(point, inp[48..]);
-                blst_fp_from_bendian(point[6..], inp[..48]);
-                blst_fp_from_bendian(point[12..], inp[144..]);
-                blst_fp_from_bendian(point[18..], inp[96..]);
+                blst_fp_from_bendian(Point, inp[48..]);
+                blst_fp_from_bendian(Point[6..], inp[..48]);
+                blst_fp_from_bendian(Point[12..], inp[144..]);
+                blst_fp_from_bendian(Point[18..], inp[96..]);
             }
             else
             {
-                ERROR err = blst_p2_deserialize(point, inp);
+                ERROR err = blst_p2_deserialize(Point, inp);
                 if (err != ERROR.SUCCESS)
                     throw new Exception(err);
             }
 
-            blst_p2_from_affine(point, point);
+            blst_p2_from_affine(Point, Point);
         }
 
-        public static void Decode(Span<long> res, ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2, ReadOnlySpan<byte> fp3, ReadOnlySpan<byte> fp4)
+        public void Decode(ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2, ReadOnlySpan<byte> fp3, ReadOnlySpan<byte> fp4)
         {
             if (fp1.Length != 48 || fp2.Length != 48 || fp3.Length != 48 || fp4.Length != 48)
             {
                 throw new Exception(ERROR.BADENCODING);
             }
 
-            blst_fp_from_bendian(res, fp1);
-            blst_fp_from_bendian(res[6..], fp2);
-            blst_fp_from_bendian(res[12..], fp3);
-            blst_fp_from_bendian(res[18..], fp4);
-            blst_p2_from_affine(res, res);
+            blst_fp_from_bendian(Point, fp1);
+            blst_fp_from_bendian(Point[6..], fp2);
+            blst_fp_from_bendian(Point[12..], fp3);
+            blst_fp_from_bendian(Point[18..], fp4);
+            blst_p2_from_affine(Point, Point);
         }
 
-        public P2(P2Affine affine) : this(true)
-        { blst_p2_from_affine(point, affine.point); }
+        public P2(P2Affine affine) : this()
+        { blst_p2_from_affine(Point, affine.Point); }
 
         public readonly P2 Dup() => new(this);
         public readonly P2Affine ToAffine() => new(this);
         public readonly byte[] Serialize()
         {
             byte[] ret = new byte[2 * P2_COMPRESSED_SZ];
-            blst_p2_serialize(ret, point);
+            blst_p2_serialize(ret, Point);
             return ret;
         }
         public readonly byte[] Compress()
         {
             byte[] ret = new byte[P2_COMPRESSED_SZ];
-            blst_p2_compress(ret, point);
+            blst_p2_compress(ret, Point);
             return ret;
         }
 
         public readonly bool OnCurve()
-            => blst_p2_on_curve(point);
+            => blst_p2_on_curve(Point);
         public readonly bool InGroup()
-            => blst_p2_in_g2(point);
+            => blst_p2_in_g2(Point);
         public readonly bool IsInf()
-            => blst_p2_is_inf(point);
+            => blst_p2_is_inf(Point);
         public readonly bool IsEqual(P2 p)
-            => blst_p2_is_equal(point, p.point);
+            => blst_p2_is_equal(Point, p.Point);
 
         public readonly unsafe P2 MapTo(scoped ReadOnlySpan<byte> c0, scoped ReadOnlySpan<byte> c1)
         {
@@ -1091,34 +1155,34 @@ public static partial class Bls
 
             Span<long> u = [.. u0, .. u1];
 
-            blst_map_to_g2(point, u, null);
+            blst_map_to_g2(Point, u, null);
             return this;
         }
         public readonly P2 HashTo(scoped ReadOnlySpan<byte> msg, scoped ReadOnlySpan<byte> DST = default, scoped ReadOnlySpan<byte> aug = default)
         {
-            blst_hash_to_g2(point, msg, (size_t)msg.Length,
+            blst_hash_to_g2(Point, msg, (size_t)msg.Length,
                                     DST, (size_t)DST.Length,
                                     aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
         public readonly P2 EncodeTo(scoped ReadOnlySpan<byte> msg, scoped ReadOnlySpan<byte> DST = default, scoped ReadOnlySpan<byte> aug = default)
         {
-            blst_encode_to_g2(point, msg, (size_t)msg.Length,
+            blst_encode_to_g2(Point, msg, (size_t)msg.Length,
                                       DST, (size_t)DST.Length,
                                       aug, (size_t)(aug != null ? aug.Length : 0));
             return this;
         }
 
         public readonly P2 SignWith(SecretKey sk)
-        { blst_sign_pk_in_g1(point, point, sk.key); return this; }
+        { blst_sign_pk_in_g1(Point, Point, sk.key); return this; }
         public readonly P2 SignWith(Scalar scalar)
-        { blst_sign_pk_in_g1(point, point, scalar.val); return this; }
+        { blst_sign_pk_in_g1(Point, Point, scalar.val); return this; }
 
         public readonly void Aggregate(P2Affine inp)
         {
-            if (blst_p2_affine_in_g2(inp.point))
+            if (blst_p2_affine_in_g2(inp.Point))
             {
-                blst_p2_add_or_double_affine(point, point, inp.point);
+                blst_p2_add_or_double_affine(Point, Point, inp.Point);
             }
             else
             {
@@ -1128,12 +1192,12 @@ public static partial class Bls
 
         public readonly P2 Mult(scoped ReadOnlySpan<byte> scalar)
         {
-            blst_p2_mult(point, point, scalar, (size_t)(scalar.Length * 8));
+            blst_p2_mult(Point, Point, scalar, (size_t)(scalar.Length * 8));
             return this;
         }
         public readonly P2 Mult(Scalar scalar)
         {
-            blst_p2_mult(point, point, scalar.val, 255);
+            blst_p2_mult(Point, Point, scalar.val, 255);
             return this;
         }
         public readonly P2 Mult(in BigInteger scalar)
@@ -1142,7 +1206,7 @@ public static partial class Bls
             if (scalar.Sign < 0)
             {
                 val = BigInteger.Negate(scalar).ToByteArray();
-                blst_p2_cneg(point, true);
+                blst_p2_cneg(Point, true);
             }
             else
             {
@@ -1150,7 +1214,7 @@ public static partial class Bls
             }
             int len = val.Length;
             if (val[len - 1] == 0) len--;
-            blst_p2_mult(point, point, val, (size_t)(len * 8));
+            blst_p2_mult(Point, Point, val, (size_t)(len * 8));
             return this;
         }
         private readonly unsafe P2 MultiMultRawAffines(long* rawAffinesPtr, scoped Span<byte> rawScalars, int npoints)
@@ -1166,7 +1230,7 @@ public static partial class Bls
                 fixed (long** rawAffinesWrapperPtr = rawAffinesWrapper)
                 fixed (byte** rawScalarsWrapperPtr = rawScalarsWrapper)
                 fixed (long* scratchPtr = scratch)
-                    blst_p2s_mult_pippenger(point, rawAffinesWrapperPtr, (size_t)npoints, rawScalarsWrapperPtr, 256, scratchPtr);
+                    blst_p2s_mult_pippenger(Point, rawAffinesWrapperPtr, (size_t)npoints, rawScalarsWrapperPtr, 256, scratchPtr);
             }
             return this;
         }
@@ -1187,14 +1251,14 @@ public static partial class Bls
             fixed (long* rawAffinesPtr = rawAffines)
                 return MultiMultRawAffines(rawAffinesPtr, rawScalars, npoints);
         }
-        public readonly P2 Cneg(bool flag) { blst_p2_cneg(point, flag); return this; }
-        public readonly P2 Neg() { blst_p2_cneg(point, true); return this; }
+        public readonly P2 Cneg(bool flag) { blst_p2_cneg(Point, flag); return this; }
+        public readonly P2 Neg() { blst_p2_cneg(Point, true); return this; }
         public readonly P2 Add(P2 a)
-        { blst_p2_add_or_double(point, point, a.point); return this; }
+        { blst_p2_add_or_double(Point, Point, a.Point); return this; }
         public readonly P2 Add(P2Affine a)
-        { blst_p2_add_or_double_affine(point, point, a.point); return this; }
+        { blst_p2_add_or_double_affine(Point, Point, a.Point); return this; }
         public readonly P2 Dbl()
-        { blst_p2_double(point, point); return this; }
+        { blst_p2_double(Point, Point); return this; }
 
         public static P2 Generator()
         {
@@ -1266,55 +1330,67 @@ public static partial class Bls
 
     public readonly ref struct PT
     {
-        internal readonly Span<long> fp12;
+        public readonly Span<long> Fp12;
 
         private static readonly int sz = (int)blst_fp12_sizeof() / sizeof(long);
 
-        internal PT(long[] p) { fp12 = p; }
-        internal PT(bool _) { fp12 = new long[sz]; }
-        private PT(PT orig)
+        public PT(PT orig)
         {
-            fp12 = new long[sz];
-            orig.fp12.CopyTo(fp12);
+            Fp12 = new long[sz];
+            orig.Fp12.CopyTo(Fp12);
         }
 
-        public PT(P1Affine p) : this(true)
-        { blst_aggregated_in_g1(fp12, p.point); }
-        public PT(P1 p) : this(true)
-        { blst_aggregated_in_g1(fp12, new P1Affine(p).point); }
-        public PT(P2Affine q) : this(true)
-        { blst_aggregated_in_g2(fp12, q.point); }
-        public PT(P2 q) : this(true)
-        { blst_aggregated_in_g2(fp12, new P2Affine(q).point); }
-        public PT(P2Affine q, P1Affine p) : this(true)
-        { blst_miller_loop(fp12, q.point, p.point); }
-        public PT(P1Affine p, P2Affine q) : this(q, p) { }
-        public PT(P2 q, P1 p) : this(true)
+        public PT(Span<long> p)
         {
-            blst_miller_loop(fp12, new P2Affine(q).point,
-                                   new P1Affine(p).point);
+            if (p.Length < sz)
+            {
+                throw new Exception(ERROR.WRONGSIZE);
+            }
+            Fp12 = p[..sz];
+        }
+
+        public PT()
+        {
+            Fp12 = new long[sz];
+        }
+
+        public PT(P1Affine p) : this()
+        { blst_aggregated_in_g1(Fp12, p.Point); }
+        public PT(P1 p) : this()
+        { blst_aggregated_in_g1(Fp12, new P1Affine(p).Point); }
+        public PT(P2Affine q) : this()
+        { blst_aggregated_in_g2(Fp12, q.Point); }
+        public PT(P2 q) : this()
+        { blst_aggregated_in_g2(Fp12, new P2Affine(q).Point); }
+        public PT(P2Affine q, P1Affine p) : this()
+        { blst_miller_loop(Fp12, q.Point, p.Point); }
+        public PT(P1Affine p, P2Affine q) : this(q, p) { }
+        public PT(P2 q, P1 p) : this()
+        {
+            blst_miller_loop(Fp12, new P2Affine(q).Point,
+                                   new P1Affine(p).Point);
         }
         public PT(P1 p, P2 q) : this(q, p) { }
 
         public readonly PT Dup() => new(this);
         public readonly bool IsOne()
-            => blst_fp12_is_one(fp12);
+            => blst_fp12_is_one(Fp12);
         public readonly bool IsEqual(PT p)
-            => blst_fp12_is_equal(fp12, p.fp12);
-        public readonly PT Sqr() { blst_fp12_sqr(fp12, fp12); return this; }
-        public readonly PT Mul(PT p) { blst_fp12_mul(fp12, fp12, p.fp12); return this; }
-        public readonly PT FinalExp() { blst_final_exp(fp12, fp12); return this; }
+            => blst_fp12_is_equal(Fp12, p.Fp12);
+        public readonly PT Sqr() { blst_fp12_sqr(Fp12, Fp12); return this; }
+        public readonly PT Mul(PT p) { blst_fp12_mul(Fp12, Fp12, p.Fp12); return this; }
+        public readonly PT FinalExp() { blst_final_exp(Fp12, Fp12); return this; }
         public readonly bool InGroup()
-            => blst_fp12_in_group(fp12);
+            => blst_fp12_in_group(Fp12);
         public readonly byte[] ToBendian()
         {
             byte[] ret = new byte[12 * P1_COMPRESSED_SZ];
-            blst_bendian_from_fp12(ret, fp12);
+            blst_bendian_from_fp12(ret, Fp12);
             return ret;
         }
 
         public static bool FinalVerify(PT gt1, PT gt2)
-        { return blst_fp12_finalverify(gt1.fp12, gt2.fp12); }
+        { return blst_fp12_finalverify(gt1.Fp12, gt2.Fp12); }
 
         public static PT One()
         {
@@ -1355,11 +1431,6 @@ public static partial class Bls
 
         private static readonly int sz = (int)blst_pairing_sizeof() / sizeof(long);
 
-        internal Pairing(long[] p)
-        {
-            ctx = new long[sz];
-            ctx = p;
-        }
         public Pairing(bool hashOrEncode = false, scoped ReadOnlySpan<byte> DST = default)
         {
             int dst_len = DST.Length;
@@ -1381,16 +1452,16 @@ public static partial class Bls
         public readonly ERROR Aggregate(P1Affine pk, P2Affine sig,
                                               ReadOnlySpan<byte> msg, ReadOnlySpan<byte> aug = default)
         {
-            return blst_pairing_aggregate_pk_in_g1(ctx, pk.point,
-                                    sig.point,
+            return blst_pairing_aggregate_pk_in_g1(ctx, pk.Point,
+                                    sig.Point,
                                     msg, (size_t)msg.Length,
                                     aug, (size_t)(aug != null ? aug.Length : 0));
         }
         public readonly ERROR Aggregate(P2Affine pk, P1Affine sig,
                                              ReadOnlySpan<byte> msg, ReadOnlySpan<byte> aug = default)
         {
-            return blst_pairing_aggregate_pk_in_g2(ctx, pk.point,
-                                    sig.point,
+            return blst_pairing_aggregate_pk_in_g2(ctx, pk.Point,
+                                    sig.Point,
                                     msg, (size_t)msg.Length,
                                     aug, (size_t)(aug != null ? aug.Length : 0));
         }
@@ -1398,7 +1469,7 @@ public static partial class Bls
                                                    ReadOnlySpan<byte> scalar, int nbits,
                                                    ReadOnlySpan<byte> msg, ReadOnlySpan<byte> aug = default)
         {
-            return blst_pairing_mul_n_aggregate_pk_in_g2(ctx, pk.point, sig.point,
+            return blst_pairing_mul_n_aggregate_pk_in_g2(ctx, pk.Point, sig.Point,
                                     scalar, (size_t)nbits,
                                     msg, (size_t)msg.Length,
                                     aug, (size_t)(aug != null ? aug.Length : 0));
@@ -1407,7 +1478,7 @@ public static partial class Bls
                                                    ReadOnlySpan<byte> scalar, int nbits,
                                                    ReadOnlySpan<byte> msg, ReadOnlySpan<byte> aug = default)
         {
-            return blst_pairing_mul_n_aggregate_pk_in_g1(ctx, pk.point, sig.point,
+            return blst_pairing_mul_n_aggregate_pk_in_g1(ctx, pk.Point, sig.Point,
                                     scalar, (size_t)nbits,
                                     msg, (size_t)msg.Length,
                                     aug, (size_t)(aug != null ? aug.Length : 0));
@@ -1422,17 +1493,17 @@ public static partial class Bls
                 throw new Exception(err);
             }
         }
-        public readonly bool FinalVerify(PT sig = new PT())
-        { return blst_pairing_finalverify(ctx, sig.fp12); }
+        public readonly bool FinalVerify(PT sig)
+        { return blst_pairing_finalverify(ctx, sig.Fp12); }
 
         public readonly void RawAggregate(P2Affine q, P1Affine p)
-        { blst_pairing_raw_aggregate(ctx, q.point, p.point); }
+        { blst_pairing_raw_aggregate(ctx, q.Point, p.Point); }
         public void RawAggregate(P1Affine p, P2Affine q)
         { RawAggregate(q, p); }
         public readonly void RawAggregate(P2 q, P1 p)
         {
-            blst_pairing_raw_aggregate(ctx, new P2Affine(q).point,
-                                            new P1Affine(p).point);
+            blst_pairing_raw_aggregate(ctx, new P2Affine(q).Point,
+                                            new P1Affine(p).Point);
         }
         public void RawAggregate(P1 p, P2 q)
             => RawAggregate(q, p);
