@@ -451,6 +451,8 @@ public static partial class Bls
         public P1Affine(scoped ReadOnlySpan<byte> inp) : this()
             => Decode(inp);
 
+        public readonly void Zero()
+            => _point.Clear();
         public void Decode(scoped ReadOnlySpan<byte> inp)
         {
             int len = inp.Length;
@@ -644,6 +646,8 @@ public static partial class Bls
         public P1(scoped ReadOnlySpan<byte> inp) : this()
             => Decode(inp);
 
+        public readonly void Zero()
+            => _point.Clear();
         public void Decode(scoped ReadOnlySpan<byte> inp)
         {
             int len = inp.Length;
@@ -948,6 +952,8 @@ public static partial class Bls
         public P2Affine(scoped ReadOnlySpan<byte> inp) : this()
             => Decode(inp);
 
+        public readonly void Zero()
+            => _point.Clear();
         public void Decode(scoped ReadOnlySpan<byte> inp)
         {
             int len = inp.Length;
@@ -1136,6 +1142,11 @@ public static partial class Bls
         public P2(scoped ReadOnlySpan<byte> inp) : this()
             => Decode(inp);
 
+        public P2(P2Affine affine) : this()
+        { blst_p2_from_affine(_point, affine.Point); }
+
+        public readonly void Zero()
+            => _point.Clear();
         public void Decode(scoped ReadOnlySpan<byte> inp)
         {
             int len = inp.Length;
@@ -1175,9 +1186,6 @@ public static partial class Bls
             blst_fp_from_bendian(_point[18..], fp4);
             blst_p2_from_affine(_point, _point);
         }
-
-        public P2(P2Affine affine) : this()
-        { blst_p2_from_affine(_point, affine.Point); }
 
         public readonly P2 Dup() => new(this);
         public readonly P2Affine ToAffine() => new(this);
@@ -1465,8 +1473,17 @@ public static partial class Bls
         public static PT One()
         {
             long[] res = new long[Sz];
-            Marshal.Copy(blst_fp12_one(), res, 0, Sz);
-            return new(res);
+            return One(res);
+        }
+
+        public unsafe static PT One(Span<long> p)
+        {
+            int s = (int)blst_fp12_sizeof();
+            fixed (long* dest = p)
+            {
+                Buffer.MemoryCopy((byte*)blst_fp12_one(), dest, s, s);
+            }
+            return new(p);
         }
     }
 
