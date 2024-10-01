@@ -69,7 +69,7 @@ public static partial class Bls
         WRONGSIZE,
     }
 
-    public class Exception(ERROR err) : ApplicationException
+    public class BlsException(ERROR err) : ApplicationException
     {
         private readonly ERROR code = err;
 
@@ -149,7 +149,7 @@ public static partial class Bls
         {
             if (key.Length < 32)
             {
-                throw new Exception(ERROR.WRONGSIZE);
+                throw new BlsException(ERROR.WRONGSIZE);
             }
             _key = key[..32];
         }
@@ -209,28 +209,28 @@ public static partial class Bls
         {
             if (inp.Length != 32)
             {
-                throw new Exception(ERROR.BADENCODING);
+                throw new BlsException(ERROR.BADENCODING);
             }
 
             blst_scalar_from_bendian(_key, inp);
 
             if (!blst_sk_check(_key))
             {
-                throw new Exception(ERROR.BADENCODING);
+                throw new BlsException(ERROR.BADENCODING);
             }
         }
         public readonly void FromLendian(scoped ReadOnlySpan<byte> inp)
         {
             if (inp.Length != 32)
             {
-                throw new Exception(ERROR.BADENCODING);
+                throw new BlsException(ERROR.BADENCODING);
             }
 
             blst_scalar_from_lendian(_key, inp);
 
             if (!blst_sk_check(_key))
             {
-                throw new Exception(ERROR.BADENCODING);
+                throw new BlsException(ERROR.BADENCODING);
             }
         }
 
@@ -284,7 +284,7 @@ public static partial class Bls
         {
             if (val.Length < 32)
             {
-                throw new Exception(ERROR.WRONGSIZE);
+                throw new BlsException(ERROR.WRONGSIZE);
             }
             _val = val[..32];
         }
@@ -330,7 +330,7 @@ public static partial class Bls
         {
             if (!blst_sk_add_n_check(_val, _val, a.Key))
             {
-                throw new Exception(ERROR.BADSCALAR);
+                throw new BlsException(ERROR.BADSCALAR);
             }
             return this;
         }
@@ -338,7 +338,7 @@ public static partial class Bls
         {
             if (!blst_sk_add_n_check(_val, _val, a._val))
             {
-                throw new Exception(ERROR.BADSCALAR);
+                throw new BlsException(ERROR.BADSCALAR);
             }
             return this;
         }
@@ -346,7 +346,7 @@ public static partial class Bls
         {
             if (!blst_sk_sub_n_check(_val, _val, a._val))
             {
-                throw new Exception(ERROR.BADSCALAR);
+                throw new BlsException(ERROR.BADSCALAR);
             }
             return this;
         }
@@ -354,7 +354,7 @@ public static partial class Bls
         {
             if (!blst_sk_mul_n_check(_val, _val, a._val))
             {
-                throw new Exception(ERROR.BADSCALAR);
+                throw new BlsException(ERROR.BADSCALAR);
             }
             return this;
         }
@@ -438,7 +438,7 @@ public static partial class Bls
         {
             if (p.Length < Sz)
             {
-                throw new Exception(ERROR.WRONGSIZE);
+                throw new BlsException(ERROR.WRONGSIZE);
             }
             _point = p[..Sz];
         }
@@ -459,13 +459,13 @@ public static partial class Bls
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P1_COMPRESSED_SZ
                                                           : 2 * P1_COMPRESSED_SZ))
             {
-                throw new Exception(ERROR.BADENCODING);
+                throw new BlsException(ERROR.BADENCODING);
             }
 
             ERROR err = blst_p1_deserialize(_point, inp);
             if (err != ERROR.SUCCESS)
             {
-                throw new Exception(err);
+                throw new BlsException(err);
             }
         }
         public P1Affine(P1 jacobian) : this()
@@ -630,7 +630,7 @@ public static partial class Bls
         {
             if (p.Length < Sz)
             {
-                throw new Exception(ERROR.WRONGSIZE);
+                throw new BlsException(ERROR.WRONGSIZE);
             }
             _point = p[..Sz];
         }
@@ -654,7 +654,7 @@ public static partial class Bls
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P1_COMPRESSED_SZ
                                                           : 2 * P1_COMPRESSED_SZ))
             {
-                throw new Exception(ERROR.BADENCODING);
+                throw new BlsException(ERROR.BADENCODING);
             }
 
             if (len == 2 * P1_COMPRESSED_SZ)
@@ -666,7 +666,7 @@ public static partial class Bls
             {
                 ERROR err = blst_p1_deserialize(_point, inp);
                 if (err != ERROR.SUCCESS)
-                    throw new Exception(err);
+                    throw new BlsException(err);
             }
 
             blst_p1_from_affine(_point, _point);
@@ -676,7 +676,7 @@ public static partial class Bls
         {
             if (fp1.Length != 48 || fp2.Length != 48)
             {
-                throw new Exception(ERROR.BADENCODING);
+                throw new BlsException(ERROR.BADENCODING);
             }
 
             blst_fp_from_bendian(_point, fp1);
@@ -746,7 +746,7 @@ public static partial class Bls
             }
             else
             {
-                throw new Exception(ERROR.POINTNOTINGROUP);
+                throw new BlsException(ERROR.POINTNOTINGROUP);
             }
         }
 
@@ -939,7 +939,7 @@ public static partial class Bls
         {
             if (p.Length < Sz)
             {
-                throw new Exception(ERROR.WRONGSIZE);
+                throw new BlsException(ERROR.WRONGSIZE);
             }
             _point = p[..Sz];
         }
@@ -960,13 +960,13 @@ public static partial class Bls
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P2_COMPRESSED_SZ
                                                           : 2 * P2_COMPRESSED_SZ))
             {
-                throw new Exception(ERROR.BADENCODING);
+                throw new BlsException(ERROR.BADENCODING);
             }
 
             ERROR err = blst_p2_deserialize(_point, inp);
             if (err != ERROR.SUCCESS)
             {
-                throw new Exception(err);
+                throw new BlsException(err);
             }
         }
 
@@ -1126,7 +1126,7 @@ public static partial class Bls
         {
             if (p.Length < Sz)
             {
-                throw new Exception(ERROR.WRONGSIZE);
+                throw new BlsException(ERROR.WRONGSIZE);
             }
             _point = p[..Sz];
         }
@@ -1153,7 +1153,7 @@ public static partial class Bls
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P2_COMPRESSED_SZ
                                                           : 2 * P2_COMPRESSED_SZ))
             {
-                throw new Exception(ERROR.BADENCODING);
+                throw new BlsException(ERROR.BADENCODING);
             }
 
             if (len == 2 * P2_COMPRESSED_SZ)
@@ -1167,7 +1167,7 @@ public static partial class Bls
             {
                 ERROR err = blst_p2_deserialize(_point, inp);
                 if (err != ERROR.SUCCESS)
-                    throw new Exception(err);
+                    throw new BlsException(err);
             }
 
             blst_p2_from_affine(_point, _point);
@@ -1177,7 +1177,7 @@ public static partial class Bls
         {
             if (fp1.Length != 48 || fp2.Length != 48 || fp3.Length != 48 || fp4.Length != 48)
             {
-                throw new Exception(ERROR.BADENCODING);
+                throw new BlsException(ERROR.BADENCODING);
             }
 
             blst_fp_from_bendian(_point, fp1);
@@ -1252,7 +1252,7 @@ public static partial class Bls
             }
             else
             {
-                throw new Exception(ERROR.POINTNOTINGROUP);
+                throw new BlsException(ERROR.POINTNOTINGROUP);
             }
         }
 
@@ -1421,7 +1421,7 @@ public static partial class Bls
         {
             if (p.Length < Sz)
             {
-                throw new Exception(ERROR.WRONGSIZE);
+                throw new BlsException(ERROR.WRONGSIZE);
             }
             _fp12 = p[..Sz];
         }
@@ -1578,7 +1578,7 @@ public static partial class Bls
             ERROR err = blst_pairing_merge(_ctx, a._ctx);
             if (err != ERROR.SUCCESS)
             {
-                throw new Exception(err);
+                throw new BlsException(err);
             }
         }
         public readonly bool FinalVerify(PT sig)
