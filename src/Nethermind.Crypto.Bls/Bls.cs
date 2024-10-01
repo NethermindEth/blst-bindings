@@ -641,6 +641,9 @@ public static partial class Bls
         }
 
         public P1(SecretKey sk) : this()
+            => FromSk(sk);
+
+        public void FromSk(SecretKey sk)
         { blst_sk_to_pk_in_g1(_point, sk.Key); }
 
         public P1(scoped ReadOnlySpan<byte> inp) : this()
