@@ -424,9 +424,9 @@ public static partial class Bls
     public readonly ref struct P1Affine
     {
         public readonly ReadOnlySpan<long> Point { get => _point; }
+        public static int Sz { get => _sz; }
         private readonly Span<long> _point;
-
-        public static readonly int Sz = (int)blst_p1_affine_sizeof() / sizeof(long);
+        private static readonly int _sz = (int)blst_p1_affine_sizeof() / sizeof(long);
 
         public P1Affine(P1Affine p)
         {
@@ -616,9 +616,9 @@ public static partial class Bls
     public readonly ref struct P1
     {
         public readonly ReadOnlySpan<long> Point { get => _point; }
+        public static int Sz { get => _sz; }
         private readonly Span<long> _point;
-
-        public static readonly int Sz = (int)blst_p1_sizeof() / sizeof(long);
+        private static readonly int _sz = (int)blst_p1_sizeof() / sizeof(long);
 
         public P1(P1 p)
         {
@@ -928,9 +928,9 @@ public static partial class Bls
     {
 
         public readonly ReadOnlySpan<long> Point { get => _point; }
+        public static int Sz { get => _sz; }
         private readonly Span<long> _point;
-
-        public static readonly int Sz = (int)blst_p2_affine_sizeof() / sizeof(long);
+        private static readonly int _sz = (int)blst_p2_affine_sizeof() / sizeof(long);
 
         public P2Affine(P2Affine p)
         {
@@ -1115,9 +1115,9 @@ public static partial class Bls
     public readonly ref struct P2
     {
         public readonly ReadOnlySpan<long> Point { get => _point; }
+        public static int Sz { get => _sz; }
         private readonly Span<long> _point;
-
-        public static readonly int Sz = (int)blst_p2_sizeof() / sizeof(long);
+        private static readonly int _sz = (int)blst_p2_sizeof() / sizeof(long);
 
         public P2(P2 p)
         {
@@ -1409,10 +1409,9 @@ public static partial class Bls
     public readonly ref struct PT
     {
         public readonly ReadOnlySpan<long> Fp12 { get => _fp12; }
+        public static int Sz { get => _sz; }
         private readonly Span<long> _fp12;
-
-
-        public static readonly int Sz = (int)blst_fp12_sizeof() / sizeof(long);
+        private static readonly int _sz = (int)blst_fp12_sizeof() / sizeof(long);
 
         public PT(PT orig)
         {
@@ -1518,9 +1517,9 @@ public static partial class Bls
     public readonly ref struct Pairing
     {
         public readonly ReadOnlySpan<long> Ctx { get => _ctx; }
+        public static int Sz { get => _sz; }
         private readonly Span<long> _ctx;
-
-        public static readonly int Sz = (int)blst_pairing_sizeof() / sizeof(long);
+        private static readonly int _sz = (int)blst_pairing_sizeof() / sizeof(long);
 
         public Pairing(bool hashOrEncode = false, scoped ReadOnlySpan<byte> DST = default)
         {
