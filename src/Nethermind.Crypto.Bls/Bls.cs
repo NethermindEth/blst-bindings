@@ -66,8 +66,7 @@ public static partial class Bls
         AGGRTYPEMISMATCH,
         VERIFYFAIL,
         PKISINFINITY,
-        BADSCALAR,
-        WRONGSIZE,
+        BADSCALAR
     }
 
     public class BlsException(ERROR err) : ApplicationException
@@ -150,7 +149,7 @@ public static partial class Bls
         {
             if (key.Length < 32)
             {
-                throw new BlsException(ERROR.WRONGSIZE);
+                throw new ArgumentException("Invalid key length. Expected 32 bytes.");
             }
             _key = key[..32];
         }
@@ -285,7 +284,7 @@ public static partial class Bls
         {
             if (val.Length < 32)
             {
-                throw new BlsException(ERROR.WRONGSIZE);
+                throw new ArgumentException("Invalid scalar length. Expected 32 bytes.");
             }
             _val = val[..32];
         }
@@ -439,7 +438,7 @@ public static partial class Bls
         {
             if (p.Length < Sz)
             {
-                throw new BlsException(ERROR.WRONGSIZE);
+                throw new ArgumentException($"Invalid point length. Expected {_sz} longs.");
             }
             _point = p[..Sz];
         }
@@ -644,7 +643,7 @@ public static partial class Bls
         {
             if (p.Length < Sz)
             {
-                throw new BlsException(ERROR.WRONGSIZE);
+                throw new ArgumentException($"Invalid point length. Expected {_sz} longs.");
             }
             _point = p[..Sz];
         }
@@ -971,7 +970,7 @@ public static partial class Bls
         {
             if (p.Length < Sz)
             {
-                throw new BlsException(ERROR.WRONGSIZE);
+                throw new ArgumentException($"Invalid point length. Expected {_sz} longs.");
             }
             _point = p[..Sz];
         }
@@ -1170,7 +1169,7 @@ public static partial class Bls
         {
             if (p.Length < Sz)
             {
-                throw new BlsException(ERROR.WRONGSIZE);
+                throw new ArgumentException($"Invalid point length. Expected {_sz} longs.");
             }
             _point = p[..Sz];
         }
@@ -1479,7 +1478,7 @@ public static partial class Bls
         {
             if (p.Length < Sz)
             {
-                throw new BlsException(ERROR.WRONGSIZE);
+                throw new ArgumentException($"Invalid point length. Expected {_sz} longs.");
             }
             _fp12 = p[..Sz];
         }
