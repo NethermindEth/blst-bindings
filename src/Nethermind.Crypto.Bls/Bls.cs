@@ -155,7 +155,7 @@ public static partial class Bls
         }
 
         public SecretKey() : this(new byte[32])
-        {}
+        { }
 
         public SecretKey(scoped ReadOnlySpan<byte> IKM, string info) : this()
             => Keygen(IKM, info);
@@ -290,7 +290,7 @@ public static partial class Bls
         }
 
         public Scalar() : this(new byte[32])
-        {}
+        { }
 
         public Scalar(ReadOnlySpan<byte> inp, ByteOrder order = ByteOrder.BigEndian) : this()
         {
@@ -453,21 +453,34 @@ public static partial class Bls
 
         public readonly void Zero()
             => _point.Clear();
-        public void Decode(scoped ReadOnlySpan<byte> inp)
+
+        public bool TryDecode(scoped ReadOnlySpan<byte> inp, out ERROR err)
         {
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P1_COMPRESSED_SZ
                                                           : 2 * P1_COMPRESSED_SZ))
             {
-                throw new BlsException(ERROR.BADENCODING);
+                err = ERROR.BADENCODING;
+                return false;
             }
 
-            ERROR err = blst_p1_deserialize(_point, inp);
+            err = blst_p1_deserialize(_point, inp);
             if (err != ERROR.SUCCESS)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public void Decode(scoped ReadOnlySpan<byte> inp)
+        {
+            if (!TryDecode(inp, out ERROR err))
             {
                 throw new BlsException(err);
             }
         }
+
         public P1Affine(P1 jacobian) : this()
             => blst_p1_to_affine(_point, jacobian.Point);
 
@@ -651,13 +664,15 @@ public static partial class Bls
 
         public readonly void Zero()
             => _point.Clear();
-        public void Decode(scoped ReadOnlySpan<byte> inp)
+
+        public bool TryDecode(scoped ReadOnlySpan<byte> inp, out ERROR err)
         {
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P1_COMPRESSED_SZ
                                                           : 2 * P1_COMPRESSED_SZ))
             {
-                throw new BlsException(ERROR.BADENCODING);
+                err = ERROR.BADENCODING;
+                return false;
             }
 
             if (len == 2 * P1_COMPRESSED_SZ)
@@ -667,24 +682,49 @@ public static partial class Bls
             }
             else
             {
-                ERROR err = blst_p1_deserialize(_point, inp);
+                err = blst_p1_deserialize(_point, inp);
                 if (err != ERROR.SUCCESS)
-                    throw new BlsException(err);
+                {
+                    return false;
+                }
             }
 
             blst_p1_from_affine(_point, _point);
+
+            err = ERROR.SUCCESS;
+            return true;
         }
 
-        public void Decode(ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2)
+        public bool TryDecode(ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2, out ERROR err)
         {
             if (fp1.Length != 48 || fp2.Length != 48)
             {
-                throw new BlsException(ERROR.BADENCODING);
+                err = ERROR.BADENCODING;
+                return false;
             }
 
             blst_fp_from_bendian(_point, fp1);
             blst_fp_from_bendian(_point[6..], fp2);
             blst_p1_from_affine(_point, _point);
+
+            err = ERROR.SUCCESS;
+            return true;
+        }
+
+        public void Decode(scoped ReadOnlySpan<byte> inp)
+        {
+            if (!TryDecode(inp, out ERROR err))
+            {
+                throw new BlsException(err);
+            }
+        }
+
+        public void Decode(ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2)
+        {
+            if (!TryDecode(fp1, fp2, out ERROR err))
+            {
+                throw new BlsException(err);
+            }
         }
 
         public P1(P1Affine affine) : this()
@@ -957,17 +997,29 @@ public static partial class Bls
 
         public readonly void Zero()
             => _point.Clear();
-        public void Decode(scoped ReadOnlySpan<byte> inp)
+
+        public bool TryDecode(scoped ReadOnlySpan<byte> inp, out ERROR err)
         {
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P2_COMPRESSED_SZ
                                                           : 2 * P2_COMPRESSED_SZ))
             {
-                throw new BlsException(ERROR.BADENCODING);
+                err = ERROR.BADENCODING;
+                return false;
             }
 
-            ERROR err = blst_p2_deserialize(_point, inp);
+            err = blst_p2_deserialize(_point, inp);
             if (err != ERROR.SUCCESS)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public void Decode(scoped ReadOnlySpan<byte> inp)
+        {
+            if (!TryDecode(inp, out ERROR err))
             {
                 throw new BlsException(err);
             }
@@ -1150,13 +1202,15 @@ public static partial class Bls
 
         public readonly void Zero()
             => _point.Clear();
-        public void Decode(scoped ReadOnlySpan<byte> inp)
+
+        public bool TryDecode(scoped ReadOnlySpan<byte> inp, out ERROR err)
         {
             int len = inp.Length;
             if (len == 0 || len != ((inp[0] & 0x80) == 0x80 ? P2_COMPRESSED_SZ
                                                           : 2 * P2_COMPRESSED_SZ))
             {
-                throw new BlsException(ERROR.BADENCODING);
+                err = ERROR.BADENCODING;
+                return false;
             }
 
             if (len == 2 * P2_COMPRESSED_SZ)
@@ -1168,19 +1222,25 @@ public static partial class Bls
             }
             else
             {
-                ERROR err = blst_p2_deserialize(_point, inp);
+                err = blst_p2_deserialize(_point, inp);
                 if (err != ERROR.SUCCESS)
-                    throw new BlsException(err);
+                {
+                    return false;
+                }
             }
 
             blst_p2_from_affine(_point, _point);
+
+            err = ERROR.SUCCESS;
+            return true;
         }
 
-        public void Decode(ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2, ReadOnlySpan<byte> fp3, ReadOnlySpan<byte> fp4)
+        public bool TryDecode(ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2, ReadOnlySpan<byte> fp3, ReadOnlySpan<byte> fp4, out ERROR err)
         {
             if (fp1.Length != 48 || fp2.Length != 48 || fp3.Length != 48 || fp4.Length != 48)
             {
-                throw new BlsException(ERROR.BADENCODING);
+                err = ERROR.BADENCODING;
+                return false;
             }
 
             blst_fp_from_bendian(_point, fp1);
@@ -1188,6 +1248,25 @@ public static partial class Bls
             blst_fp_from_bendian(_point[12..], fp3);
             blst_fp_from_bendian(_point[18..], fp4);
             blst_p2_from_affine(_point, _point);
+
+            err = ERROR.SUCCESS;
+            return true;
+        }
+
+        public void Decode(scoped ReadOnlySpan<byte> inp)
+        {
+            if (!TryDecode(inp, out ERROR err))
+            {
+                throw new BlsException(err);
+            }
+        }
+
+        public void Decode(ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2, ReadOnlySpan<byte> fp3, ReadOnlySpan<byte> fp4)
+        {
+            if (!TryDecode(fp1, fp2, fp3, fp4, out ERROR err))
+            {
+                throw new BlsException(err);
+            }
         }
 
         public readonly P2 Dup() => new(this);
