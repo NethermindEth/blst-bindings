@@ -13,6 +13,7 @@ using System.Runtime.InteropServices;
 using System.Reflection;
 using System.IO;
 using size_t = nuint;
+using System.Runtime.CompilerServices;
 
 namespace Nethermind.Crypto;
 
@@ -695,33 +696,21 @@ public static partial class Bls
             return true;
         }
 
-        public bool TryDecode(ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2, out ERROR err)
+        public void Decode(ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2)
         {
             if (fp1.Length != 48 || fp2.Length != 48)
             {
-                err = ERROR.BADENCODING;
-                return false;
+                throw new ArgumentException("Invalid input length. Expected 48 bytes for each field element.");
             }
 
             blst_fp_from_bendian(_point, fp1);
             blst_fp_from_bendian(_point[6..], fp2);
             blst_p1_from_affine(_point, _point);
-
-            err = ERROR.SUCCESS;
-            return true;
         }
 
         public void Decode(scoped ReadOnlySpan<byte> inp)
         {
             if (!TryDecode(inp, out ERROR err))
-            {
-                throw new BlsException(err);
-            }
-        }
-
-        public void Decode(ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2)
-        {
-            if (!TryDecode(fp1, fp2, out ERROR err))
             {
                 throw new BlsException(err);
             }
@@ -1235,12 +1224,11 @@ public static partial class Bls
             return true;
         }
 
-        public bool TryDecode(ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2, ReadOnlySpan<byte> fp3, ReadOnlySpan<byte> fp4, out ERROR err)
+        public void Decode(ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2, ReadOnlySpan<byte> fp3, ReadOnlySpan<byte> fp4)
         {
             if (fp1.Length != 48 || fp2.Length != 48 || fp3.Length != 48 || fp4.Length != 48)
             {
-                err = ERROR.BADENCODING;
-                return false;
+                throw new ArgumentException("Invalid input length. Expected 48 bytes for each field element.");
             }
 
             blst_fp_from_bendian(_point, fp1);
@@ -1248,22 +1236,11 @@ public static partial class Bls
             blst_fp_from_bendian(_point[12..], fp3);
             blst_fp_from_bendian(_point[18..], fp4);
             blst_p2_from_affine(_point, _point);
-
-            err = ERROR.SUCCESS;
-            return true;
         }
 
         public void Decode(scoped ReadOnlySpan<byte> inp)
         {
             if (!TryDecode(inp, out ERROR err))
-            {
-                throw new BlsException(err);
-            }
-        }
-
-        public void Decode(ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2, ReadOnlySpan<byte> fp3, ReadOnlySpan<byte> fp4)
-        {
-            if (!TryDecode(fp1, fp2, fp3, fp4, out ERROR err))
             {
                 throw new BlsException(err);
             }
