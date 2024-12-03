@@ -41,14 +41,14 @@ jobs:
           tar xf riscv32.tar.xz -C /opt/riscv32/
           chmod -R +x /opt/riscv32/riscv
           #sudo chmod -R u+w /opt/riscv32/riscv/riscv32-unknown-linux-gnu
-          ls /opt/riscv32/riscv/riscv32-unknown-linux-gnu
+          ls -l /opt/riscv32/riscv/riscv32-unknown-linux-gnu
 
 
       - name: Build
         working-directory: blst
         run: |
           export PATH=/opt/riscv32/riscv/bin:$PATH
-          CC=/opt/riscv32/riscv/riscv32-unknown-linux-gnu ./build.sh -shared
+          ./build.sh CC=/opt/riscv32/riscv/riscv32-unknown-linux-gnu -shared
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
