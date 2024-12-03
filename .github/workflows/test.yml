@@ -40,7 +40,8 @@ jobs:
           sudo mkdir -p /opt/riscv32
           sudo tar xf riscv32.tar.xz -C /opt/riscv32/
           sudo chmod -R +x /opt/riscv32/riscv/riscv32-unknown-linux-gnu
-          ls /opt/riscv32/riscv
+          sudo chmod -R u+w /opt/riscv32/riscv/riscv32-unknown-linux-gnu
+          ls -l /opt/riscv32/riscv/riscv32-unknown-linux-gnu
 
 
       - name: Build
