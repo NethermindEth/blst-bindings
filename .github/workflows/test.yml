@@ -37,18 +37,18 @@ jobs:
         # if: matrix.arch == 'arm64'
         run: |
           curl -sL https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2024.11.22/riscv32-glibc-ubuntu-22.04-gcc-nightly-2024.11.22-nightly.tar.xz -o riscv32.tar.xz
-          sudo mkdir -p /opt/riscv32
-          sudo tar xf riscv32.tar.xz -C /opt/riscv32/
-          sudo chmod -R +x /opt/riscv32/riscv/riscv32-unknown-linux-gnu
-          sudo chmod -R u+w /opt/riscv32/riscv/riscv32-unknown-linux-gnu
-          ls -l /opt/riscv32/riscv/riscv32-unknown-linux-gnu
+          sudo mkdir -p ${{github.workspace}}/riscv
+          sudo tar xf riscv32.tar.xz -C ${{github.workspace}}/riscv
+          #sudo chmod -R +x ${{github.workspace}}/riscv/riscv/riscv32-unknown-linux-gnu
+          #sudo chmod -R u+w ${{github.workspace}}/riscv/riscv/riscv32-unknown-linux-gnu
+          #ls -l /opt/riscv32/riscv/riscv32-unknown-linux-gnu
 
 
       - name: Build
         working-directory: blst
         run: |
-          export PATH=/opt/riscv32/riscv/bin:$PATH
-          CC=/opt/riscv32/riscv/riscv32-unknown-linux-gnu ./build.sh -shared
+          export PATH=${{github.workspace}}/riscv/riscv/bin:$PATH
+          CC=${{github.workspace}}/riscv/riscv/riscv32-unknown-linux-gnu ./build.sh -shared
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
