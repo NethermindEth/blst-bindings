@@ -46,7 +46,7 @@ jobs:
         working-directory: blst
         run: |
           export PATH=/opt/riscv32/riscv/bin:$PATH
-          CC=riscv32-unknown-linux-gnu ./build.sh -shared
+          CC=/opt/riscv32/riscv/bin/riscv32-unknown-linux-gnu ./build.sh -shared
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
