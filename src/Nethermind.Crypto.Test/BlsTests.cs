@@ -9,6 +9,8 @@ namespace Nethermind.Crypto.Test;
 
 using G1 = Bls.P1;
 using G2 = Bls.P2;
+using G1Affine = Bls.P1Affine;
+using G2Affine = Bls.P2Affine;
 using GT = Bls.PT;
 
 public class BlsTests
@@ -175,6 +177,24 @@ public class BlsTests
             Assert.That(new G2().IsInf());
             Assert.That(new G2().InGroup());
         });
+    }
+
+    [Test]
+    public void MillerLoopPrecomputeLinesTest()
+    {
+        var p = G1Affine.Generator();
+        var q = G2Affine.Generator();
+        
+        Span<long> lines = new long[68 * 6 * 6];
+        q.PrecomputeLines(lines);
+
+        GT resultWithLines = new(new long[GT.Sz]);
+        resultWithLines.MillerLoopLines(lines, p);
+
+        GT resultNormal = new(new long[GT.Sz]);
+        resultNormal.MillerLoop(q, p);
+
+        Assert.That(GT.FinalVerify(resultWithLines, resultNormal));
     }
 
     private static G1 G1FromUntrimmed(in ReadOnlyMemory<byte> untrimmed)

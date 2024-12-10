@@ -944,6 +944,11 @@ public static partial class Bls
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     static private partial IntPtr blst_p2_generator();
 
+    //void blst_precompute_lines(blst_fp6 Qlines[68], const blst_p2_affine *Q);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_precompute_lines(Span<long> qlines, ReadOnlySpan<long> q);
+
     // [LibraryImport(LibraryName)]
     // [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     // static private partial ERROR blst_core_verify_pk_in_g1(ReadOnlySpan<long> pk, ReadOnlySpan<long> sig,
@@ -1039,6 +1044,9 @@ public static partial class Bls
             => blst_p2_affine_is_inf(_point);
         public readonly bool IsEqual(P2Affine p)
             => blst_p2_affine_is_equal(_point, p._point);
+
+        public readonly void PrecomputeLines(Span<long> qlines)
+            => blst_precompute_lines(qlines, _point);
 
         //         readonly ERROR core_verify(P1Affine pk, bool hash_or_encode,
         // #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
@@ -1461,6 +1469,13 @@ public static partial class Bls
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     static private partial void blst_bendian_from_fp12(Span<byte> ret, ReadOnlySpan<long> a);
 
+    // void blst_miller_loop_lines(blst_fp12 *ret, const blst_fp6 Qlines[68],
+    //                                         const blst_p1_affine *P);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    static private partial void blst_miller_loop_lines(Span<long> ret, ReadOnlySpan<long> qlines, ReadOnlySpan<long> p);
+
     public readonly ref struct PT
     {
         public readonly ReadOnlySpan<long> Fp12 { get => _fp12; }
@@ -1542,6 +1557,9 @@ public static partial class Bls
             }
             return new(p);
         }
+
+        public void MillerLoopLines(ReadOnlySpan<long> qlines, P1Affine p)
+        { blst_miller_loop_lines(_fp12, qlines, p.Point); }
     }
 
     [LibraryImport(LibraryName)]
