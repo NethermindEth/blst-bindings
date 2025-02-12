@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/Solution Items/" Id="8ec462fd-d22e-90a8-e5ce-7e832ba40c5d">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Project Path="Nethermind.Crypto.Bls/Nethermind.Crypto.Bls.csproj" />
+  <Project Path="Nethermind.Crypto.Test/Nethermind.Crypto.Test.csproj" />
+</Solution>
