@@ -1,4 +1,4 @@
-name: Test
+name: Test / Publish
 
 on:
   pull_request:
@@ -15,8 +15,22 @@ on:
         description: Publish package
         required: false
         type: boolean
+      preview:
+        default: true
+        description: Publish as preview
+        required: true
+        type: boolean
+      feed:
+        description: NuGet feed
+        required: true
+        default: Staging
+        type: choice
+        options:
+          - Production
+          - Staging
 
 env:
+  BLST_VERSION: ${{ github.event.inputs.ref || 'master' }} 
   RETENTION: 2
 
 jobs:
@@ -31,7 +45,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: supranational/blst
-          ref: v0.3.12
+          ref: ${{ env.BLST_VERSION }}
           path: blst
 
       - name: Set up GNU C compiler for arm64
@@ -64,7 +78,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: supranational/blst
-          ref: v0.3.12
+          ref: ${{ env.BLST_VERSION }}
           path: blst
 
       - name: Build
@@ -87,7 +101,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: supranational/blst
-          ref: v0.3.12
+          ref: ${{ env.BLST_VERSION }}
           path: blst
 
       - name: Set up PATH
@@ -139,8 +153,8 @@ jobs:
       - name: Build
         working-directory: src/Nethermind.Crypto.Bls
         run: |
-          dotnet build -c ${{ env.BUILD_CONFIG }} --no-restore -p:VersionSuffix=preview.${{ github.run_number }}
-          dotnet pack -c ${{ env.BUILD_CONFIG }} --no-build -p:VersionSuffix=preview.${{ github.run_number }}
+          dotnet build -c ${{ env.BUILD_CONFIG }} --no-restore -p:Commit=$GITHUB_SHA \
+            ${{ inputs.preview && format('-p:VersionSuffix=preview.{0}', github.run_number) || '' }}
 
       - name: Test
         working-directory: src/Nethermind.Crypto.Test
@@ -151,4 +165,7 @@ jobs:
         if: ${{ inputs.publish }}
         working-directory: src/Nethermind.Crypto.Bls
         run: |
-          dotnet nuget push bin/${{ env.BUILD_CONFIG }}/*.nupkg -k ${{ secrets.NUGETTEST_API_KEY }} -s https://apiint.nugettest.org/v3/index.json
+          dotnet pack -c ${{ env.BUILD_CONFIG }} --no-build
+          dotnet nuget push bin/${{ env.BUILD_CONFIG }}/*.nupkg \
+            -k ${{ github.event.inputs.feed == 'Production' && secrets.NUGET_API_KEY || secrets.NUGETTEST_API_KEY }} \
+            -s ${{ github.event.inputs.feed == 'Production' && 'https://api.nuget.org/v3/index.json' || 'https://apiint.nugettest.org/v3/index.json' }}
