@@ -55,7 +55,7 @@ jobs:
       - name: Build
         working-directory: blst
         run: |
-          ${{ matrix.arch == 'arm64' && 'CC=aarch64-linux-gnu-gcc' || '' }} ./build.sh -shared
+          ${{ matrix.arch == 'arm64' && 'CC=aarch64-linux-gnu-gcc' || '' }} ./build.sh -shared -D__BLST_PORTABLE__
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -83,7 +83,7 @@ jobs:
 
       - name: Build
         working-directory: blst
-        run: ./build.sh -shared --target=${{ matrix.arch == 'arm64' && 'aarch64-apple-darwin' || 'x86_64-apple-darwin' }}
+        run: ./build.sh -shared -D__BLST_PORTABLE__ --target=${{ matrix.arch == 'arm64' && 'aarch64-apple-darwin' || 'x86_64-apple-darwin' }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -110,7 +110,7 @@ jobs:
       - name: Build
         working-directory: blst
         shell: pwsh
-        run: ./build.bat -shared
+        run: ./build.bat -shared -D__BLST_PORTABLE__
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
