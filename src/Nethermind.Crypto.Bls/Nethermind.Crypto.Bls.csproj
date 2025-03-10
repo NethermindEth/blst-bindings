@@ -18,6 +18,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="runtimes/linux-arm/native/libblst.so" Pack="true" PackagePath="runtimes/linux-arm/native/libblst.so">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="runtimes/linux-arm64/native/libblst.so" Pack="true" PackagePath="runtimes/linux-arm64/native/libblst.so">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
