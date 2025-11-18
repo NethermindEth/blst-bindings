@@ -145,6 +145,7 @@ public static partial class Bls
         public readonly ReadOnlySpan<byte> Key { get => _key; }
         private readonly Span<byte> _key;
 
+        [OverloadResolutionPriority(1)]
         public SecretKey(Span<byte> key)
         {
             if (key.Length < 32)
@@ -280,6 +281,7 @@ public static partial class Bls
         public readonly ReadOnlySpan<byte> Val { get => _val; }
         private readonly Span<byte> _val;
 
+        [OverloadResolutionPriority(1)]
         public Scalar(Span<byte> val)
         {
             if (val.Length < 32)
@@ -753,14 +755,14 @@ public static partial class Bls
         {
             blst_hash_to_g1(_point, msg, (size_t)msg.Length,
                                     DST, (size_t)DST.Length,
-                                    aug, (size_t)(aug != null ? aug.Length : 0));
+                                    aug, (size_t)(!aug.IsEmpty ? aug.Length : 0));
             return this;
         }
         public readonly P1 EncodeTo(scoped ReadOnlySpan<byte> msg, ReadOnlySpan<byte> DST = default, ReadOnlySpan<byte> aug = default)
         {
             blst_encode_to_g1(_point, msg, (size_t)msg.Length,
                                       DST, (size_t)DST.Length,
-                                      aug, (size_t)(aug != null ? aug.Length : 0));
+                                      aug, (size_t)(!aug.IsEmpty ? aug.Length : 0));
             return this;
         }
 
@@ -1294,14 +1296,14 @@ public static partial class Bls
         {
             blst_hash_to_g2(_point, msg, (size_t)msg.Length,
                                     DST, (size_t)DST.Length,
-                                    aug, (size_t)(aug != null ? aug.Length : 0));
+                                    aug, (size_t)(!aug.IsEmpty ? aug.Length : 0));
             return this;
         }
         public readonly P2 EncodeTo(scoped ReadOnlySpan<byte> msg, scoped ReadOnlySpan<byte> DST = default, scoped ReadOnlySpan<byte> aug = default)
         {
             blst_encode_to_g2(_point, msg, (size_t)msg.Length,
                                       DST, (size_t)DST.Length,
-                                      aug, (size_t)(aug != null ? aug.Length : 0));
+                                      aug, (size_t)(!aug.IsEmpty ? aug.Length : 0));
             return this;
         }
 
@@ -1618,7 +1620,7 @@ public static partial class Bls
             return blst_pairing_aggregate_pk_in_g1(_ctx, pk.Point,
                                     sig.Point,
                                     msg, (size_t)msg.Length,
-                                    aug, (size_t)(aug != null ? aug.Length : 0));
+                                    aug, (size_t)(!aug.IsEmpty ? aug.Length : 0));
         }
         public readonly ERROR Aggregate(P2Affine pk, P1Affine sig,
                                              ReadOnlySpan<byte> msg, ReadOnlySpan<byte> aug = default)
@@ -1626,7 +1628,7 @@ public static partial class Bls
             return blst_pairing_aggregate_pk_in_g2(_ctx, pk.Point,
                                     sig.Point,
                                     msg, (size_t)msg.Length,
-                                    aug, (size_t)(aug != null ? aug.Length : 0));
+                                    aug, (size_t)(!aug.IsEmpty ? aug.Length : 0));
         }
         public readonly ERROR MulNAggregate(P2Affine pk, P1Affine sig,
                                                    ReadOnlySpan<byte> scalar, int nbits,
@@ -1635,7 +1637,7 @@ public static partial class Bls
             return blst_pairing_mul_n_aggregate_pk_in_g2(_ctx, pk.Point, sig.Point,
                                     scalar, (size_t)nbits,
                                     msg, (size_t)msg.Length,
-                                    aug, (size_t)(aug != null ? aug.Length : 0));
+                                    aug, (size_t)(!aug.IsEmpty ? aug.Length : 0));
         }
         public readonly ERROR MulNAggregate(P1Affine pk, P2Affine sig,
                                                    ReadOnlySpan<byte> scalar, int nbits,
@@ -1644,7 +1646,7 @@ public static partial class Bls
             return blst_pairing_mul_n_aggregate_pk_in_g1(_ctx, pk.Point, sig.Point,
                                     scalar, (size_t)nbits,
                                     msg, (size_t)msg.Length,
-                                    aug, (size_t)(aug != null ? aug.Length : 0));
+                                    aug, (size_t)(!aug.IsEmpty ? aug.Length : 0));
         }
 
         public readonly void Commit() { blst_pairing_commit(_ctx); }
