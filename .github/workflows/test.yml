@@ -124,7 +124,11 @@ jobs:
     needs: [build-linux, build-macos, build-windows]
     env:
       BUILD_CONFIG: release
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Check out blst-bindings repository
         uses: actions/checkout@v5
@@ -136,6 +140,7 @@ jobs:
 
       - name: Move artifacts
         working-directory: src/Nethermind.Crypto.Bls/runtimes
+        shell: bash
         run: |
           mv -f linux-arm64/libblst.so linux-arm64/native/libblst.so
           mv -f linux-x64/libblst.so linux-x64/native/libblst.so
@@ -151,7 +156,7 @@ jobs:
         run: dotnet restore
 
       - name: Build
-        working-directory: src/Nethermind.Crypto.Bls
+        working-directory: src
         run: >
           dotnet build -c ${{ env.BUILD_CONFIG }} --no-restore
             ${{ inputs.preview && format('-p:VersionSuffix=preview.{0}', github.run_number) || '' }}
@@ -161,7 +166,7 @@ jobs:
         run: dotnet test -c ${{ env.BUILD_CONFIG }} --no-restore
 
       - name: Publish
-        if: ${{ inputs.publish }}
+        if: ${{ inputs.publish && matrix.os == 'ubuntu-latest' }}
         working-directory: src/Nethermind.Crypto.Bls
         run: |
           dotnet pack -c ${{ env.BUILD_CONFIG }} --no-build
