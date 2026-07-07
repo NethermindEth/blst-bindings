@@ -157,9 +157,7 @@ jobs:
 
       - name: Build
         working-directory: src
-        run: >
-          dotnet build -c ${{ env.BUILD_CONFIG }} --no-restore
-            ${{ inputs.preview && format('-p:VersionSuffix=preview.{0}', github.run_number) || '' }}
+        run: dotnet build -c ${{ env.BUILD_CONFIG }} --no-restore ${{ inputs.preview && format('-p:VersionSuffix=preview.{0}', github.run_number) || '' }}
 
       - name: Test
         working-directory: src/Nethermind.Crypto.Test
