@@ -13,7 +13,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>cryptography elliptic-curve bls</PackageTags>
     <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/nethermindeth/bls-bindings</RepositoryUrl>
+    <RepositoryUrl>https://github.com/nethermindeth/blst-bindings</RepositoryUrl>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
