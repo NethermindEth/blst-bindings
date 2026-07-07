@@ -288,6 +288,8 @@ public class MsmBenchmarks
 
     private long[] _g1Points = [];
     private long[] _g2Points = [];
+    private long[] _g1Affines = [];
+    private long[] _g2Affines = [];
     private byte[] _scalars = [];
     private readonly long[] _g1Result = new long[G1.Sz];
     private readonly long[] _g2Result = new long[G2.Sz];
@@ -298,13 +300,17 @@ public class MsmBenchmarks
         Random rng = new(42);
         _g1Points = new long[Npoints * G1.Sz];
         _g2Points = new long[Npoints * G2.Sz];
+        _g1Affines = new long[Npoints * G1Affine.Sz];
+        _g2Affines = new long[Npoints * G2Affine.Sz];
         _scalars = new byte[Npoints * 32];
 
         for (int i = 0; i < Npoints; i++)
         {
             byte[] scalar = BenchmarkData.RandomScalar(rng);
-            G1.Generator(_g1Points.AsSpan(i * G1.Sz)).Mult(scalar);
-            G2.Generator(_g2Points.AsSpan(i * G2.Sz)).Mult(scalar);
+            G1 p = G1.Generator(_g1Points.AsSpan(i * G1.Sz)).Mult(scalar);
+            G2 q = G2.Generator(_g2Points.AsSpan(i * G2.Sz)).Mult(scalar);
+            new G1Affine(p).Point.CopyTo(_g1Affines.AsSpan(i * G1Affine.Sz));
+            new G2Affine(q).Point.CopyTo(_g2Affines.AsSpan(i * G2Affine.Sz));
             BenchmarkData.RandomScalar(rng).CopyTo(_scalars.AsSpan(i * 32));
         }
     }
@@ -321,5 +327,68 @@ public class MsmBenchmarks
     {
         new G2(_g2Result).MultiMult(_g2Points, _scalars, Npoints);
         return _g2Result[0];
+    }
+
+    [Benchmark]
+    public long G1MultiMultAffine()
+    {
+        new G1(_g1Result).MultiMultAffine(_g1Affines, _scalars, Npoints);
+        return _g1Result[0];
+    }
+
+    [Benchmark]
+    public long G2MultiMultAffine()
+    {
+        new G2(_g2Result).MultiMultAffine(_g2Affines, _scalars, Npoints);
+        return _g2Result[0];
+    }
+}
+
+[MemoryDiagnoser]
+public class PairingCheckBenchmarks
+{
+    [Params(2, 8, 16)]
+    public int Npairs;
+
+    private long[] _qAffines = [];
+    private long[] _pAffines = [];
+    private readonly long[] _acc = new long[GT.Sz];
+    private readonly long[] _tmp = new long[GT.Sz];
+
+    [GlobalSetup]
+    public void Setup()
+    {
+        Random rng = new(42);
+        _qAffines = new long[Npairs * G2Affine.Sz];
+        _pAffines = new long[Npairs * G1Affine.Sz];
+
+        for (int i = 0; i < Npairs; i++)
+        {
+            G1Affine p = new(G1.Generator().Mult(BenchmarkData.RandomScalar(rng)));
+            G2Affine q = new(G2.Generator().Mult(BenchmarkData.RandomScalar(rng)));
+            p.Point.CopyTo(_pAffines.AsSpan(i * G1Affine.Sz));
+            q.Point.CopyTo(_qAffines.AsSpan(i * G2Affine.Sz));
+        }
+    }
+
+    [Benchmark(Baseline = true)]
+    public bool SequentialMillerLoops()
+    {
+        GT acc = GT.One(_acc);
+        for (int i = 0; i < Npairs; i++)
+        {
+            GT t = new(_tmp);
+            t.MillerLoop(new G2Affine(_qAffines.AsSpan(i * G2Affine.Sz)), new G1Affine(_pAffines.AsSpan(i * G1Affine.Sz)));
+            acc.Mul(t);
+        }
+        return acc.FinalExp().IsOne();
+    }
+
+    [Benchmark]
+    public bool BatchedMillerLoopN()
+    {
+        GT acc = new(_acc);
+        acc.MillerLoopN(_qAffines, _pAffines, Npairs);
+        return acc.FinalExp().IsOne();
     }
 }

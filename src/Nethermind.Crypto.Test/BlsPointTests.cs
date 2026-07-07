@@ -303,4 +303,109 @@ public class BlsPointTests
         GT rhs = new(G1.Generator().Mult(5678).ToAffine(), G2.Generator().Mult(1234).ToAffine());
         Assert.That(GT.FinalVerify(lhs, rhs));
     }
+
+    [Test]
+    public void AffineRawDecodeMatchesValidatedDecode()
+    {
+        G1Affine g1 = new(G1.Generator().Mult(424242));
+        byte[] g1Serialized = g1.Serialize();
+        G1Affine g1Raw = new();
+        g1Raw.Decode(g1Serialized.AsSpan(0, 48), g1Serialized.AsSpan(48));
+        Assert.That(g1Raw.IsEqual(g1));
+        Assert.That(g1Raw.OnCurve());
+
+        // serialized as x.c1 || x.c0 || y.c1 || y.c0; Decode takes x.c0, x.c1, y.c0, y.c1
+        G2Affine g2 = new(G2.Generator().Mult(424242));
+        byte[] g2Serialized = g2.Serialize();
+        G2Affine g2Raw = new();
+        g2Raw.Decode(g2Serialized.AsSpan(48, 48), g2Serialized.AsSpan(0, 48), g2Serialized.AsSpan(144, 48), g2Serialized.AsSpan(96, 48));
+        Assert.That(g2Raw.IsEqual(g2));
+        Assert.That(g2Raw.OnCurve());
+    }
+
+    [Test]
+    public void AffineRawDecodeRejectsWrongLength()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(() => new G1Affine().Decode(new byte[47], new byte[48]), Throws.ArgumentException);
+            Assert.That(() => new G2Affine().Decode(new byte[48], new byte[48], new byte[48], new byte[47]), Throws.ArgumentException);
+        });
+    }
+
+    [Test]
+    public void MillerLoopNMatchesSequentialProduct()
+    {
+        const int npairs = 3;
+        long[] qAffines = new long[npairs * G2Affine.Sz];
+        long[] pAffines = new long[npairs * G1Affine.Sz];
+
+        GT sequential = GT.One();
+        for (int i = 0; i < npairs; i++)
+        {
+            G1Affine p = new(G1.Generator().Mult(1234 + i));
+            G2Affine q = new(G2.Generator().Mult(5678 + i));
+            p.Point.CopyTo(pAffines.AsSpan(i * G1Affine.Sz));
+            q.Point.CopyTo(qAffines.AsSpan(i * G2Affine.Sz));
+            sequential.Mul(new GT(q, p));
+        }
+
+        GT batched = new(new long[GT.Sz]);
+        batched.MillerLoopN(qAffines, pAffines, npairs);
+        Assert.That(batched.IsEqual(sequential));
+    }
+
+    [Test]
+    public void MillerLoopNWithNoPairsIsOne()
+    {
+        GT res = new(new long[GT.Sz]);
+        res.MillerLoopN([], [], 0);
+        Assert.That(res.IsOne());
+    }
+
+    [Test]
+    public void MillerLoopNRejectsBadArguments()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(() => { _ = new GT(new long[GT.Sz]).MillerLoopN([], [], -1); }, Throws.TypeOf<ArgumentOutOfRangeException>());
+            Assert.That(() => { _ = new GT(new long[GT.Sz]).MillerLoopN(new long[G2Affine.Sz], new long[G1Affine.Sz], 2); }, Throws.ArgumentException);
+            Assert.That(() => { _ = new GT(new long[GT.Sz]).MillerLoopN(new long[2 * G2Affine.Sz], new long[G1Affine.Sz], 2); }, Throws.ArgumentException);
+        });
+    }
+
+    [Test]
+    public void MultiMultAffineMatchesMultiMult()
+    {
+        const int npoints = 4;
+        long[] rawPoints = new long[npoints * G1.Sz];
+        long[] rawAffines = new long[npoints * G1Affine.Sz];
+        long[] rawPointsG2 = new long[npoints * G2.Sz];
+        long[] rawAffinesG2 = new long[npoints * G2Affine.Sz];
+        byte[] rawScalars = new byte[npoints * 32];
+
+        for (int i = 0; i < npoints; i++)
+        {
+            G1 p = G1.Generator(rawPoints.AsSpan(i * G1.Sz)).Mult(i + 2);
+            new G1Affine(p).Point.CopyTo(rawAffines.AsSpan(i * G1Affine.Sz));
+            G2 q = G2.Generator(rawPointsG2.AsSpan(i * G2.Sz)).Mult(i + 2);
+            new G2Affine(q).Point.CopyTo(rawAffinesG2.AsSpan(i * G2Affine.Sz));
+            BigInteger.Pow(31, i + 1).TryWriteBytes(rawScalars.AsSpan(i * 32), out _, isUnsigned: true);
+        }
+
+        G1 viaJacobian = new G1().MultiMult(rawPoints, rawScalars, npoints);
+        G1 viaAffine = new G1().MultiMultAffine(rawAffines, rawScalars, npoints);
+        Assert.That(viaAffine.IsEqual(viaJacobian));
+
+        G2 viaJacobianG2 = new G2().MultiMult(rawPointsG2, rawScalars, npoints);
+        G2 viaAffineG2 = new G2().MultiMultAffine(rawAffinesG2, rawScalars, npoints);
+        Assert.That(viaAffineG2.IsEqual(viaJacobianG2));
+    }
+
+    [Test]
+    public void MultiMultAffineWithNoPointsIsInfinity()
+    {
+        Assert.That(G1.Generator().MultiMultAffine([], [], 0).IsInf());
+        Assert.That(G2.Generator().MultiMultAffine([], [], 0).IsInf());
+    }
 }

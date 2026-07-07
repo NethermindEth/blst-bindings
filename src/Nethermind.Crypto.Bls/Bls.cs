@@ -502,6 +502,18 @@ public static partial class Bls
             }
         }
 
+        /// <summary>Decodes raw affine coordinates without any validation, as in <see cref="P1.Decode(ReadOnlySpan{byte}, ReadOnlySpan{byte})"/>.</summary>
+        public void Decode(ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2)
+        {
+            if (fp1.Length != 48 || fp2.Length != 48)
+            {
+                throw new ArgumentException("Invalid input length. Expected 48 bytes for each field element.");
+            }
+
+            blst_fp_from_bendian(_point, fp1);
+            blst_fp_from_bendian(_point[6..], fp2);
+        }
+
         public P1Affine(P1 jacobian) : this()
             => blst_p1_to_affine(_point, jacobian.Point);
 
@@ -864,9 +876,7 @@ public static partial class Bls
             }
 
             int affinesLen = npoints * P1Affine.Sz;
-            int scratchLen = (int)(blst_p1s_mult_pippenger_scratch_sizeof((size_t)npoints) / sizeof(long));
             long[] affines = ArrayPool<long>.Shared.Rent(affinesLen);
-            long[] scratch = ArrayPool<long>.Shared.Rent(scratchLen);
 
             try
             {
@@ -877,7 +887,43 @@ public static partial class Bls
                     blst_p1s_to_affine(affines.AsSpan(0, affinesLen), points, (size_t)npoints);
                 }
 
-                fixed (long* affinesPtr = affines)
+                return MultiMultAffine(affines.AsSpan(0, affinesLen), rawScalars, npoints);
+            }
+            finally
+            {
+                ArrayPool<long>.Shared.Return(affines);
+            }
+        }
+
+        /// <summary>
+        /// As <see cref="MultiMult"/>, but over affine points, skipping the Jacobian-to-affine
+        /// batch conversion.
+        /// </summary>
+        public readonly unsafe P1 MultiMultAffine(scoped ReadOnlySpan<long> rawAffines, scoped ReadOnlySpan<byte> rawScalars, int npoints)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(npoints);
+            if (rawAffines.Length < npoints * P1Affine.Sz)
+            {
+                throw new ArgumentException($"Insufficient points for the given count. Expected {npoints * P1Affine.Sz} longs.", nameof(rawAffines));
+            }
+            if (rawScalars.Length < npoints * 32)
+            {
+                throw new ArgumentException($"Insufficient scalars for the given count. Expected {npoints * 32} bytes.", nameof(rawScalars));
+            }
+
+            // blst does not support an empty multiplication; the result is the point at infinity
+            if (npoints == 0)
+            {
+                Zero();
+                return this;
+            }
+
+            int scratchLen = (int)(blst_p1s_mult_pippenger_scratch_sizeof((size_t)npoints) / sizeof(long));
+            long[] scratch = ArrayPool<long>.Shared.Rent(scratchLen);
+
+            try
+            {
+                fixed (long* affinesPtr = rawAffines)
                 fixed (byte* scalarsPtr = rawScalars)
                 fixed (long* scratchPtr = scratch)
                 {
@@ -889,7 +935,6 @@ public static partial class Bls
             finally
             {
                 ArrayPool<long>.Shared.Return(scratch);
-                ArrayPool<long>.Shared.Return(affines);
             }
 
             return this;
@@ -1039,6 +1084,20 @@ public static partial class Bls
             {
                 throw new BlsException(err);
             }
+        }
+
+        /// <summary>Decodes raw affine coordinates without any validation, as in <see cref="P2.Decode(ReadOnlySpan{byte}, ReadOnlySpan{byte}, ReadOnlySpan{byte}, ReadOnlySpan{byte})"/>.</summary>
+        public void Decode(ReadOnlySpan<byte> fp1, ReadOnlySpan<byte> fp2, ReadOnlySpan<byte> fp3, ReadOnlySpan<byte> fp4)
+        {
+            if (fp1.Length != 48 || fp2.Length != 48 || fp3.Length != 48 || fp4.Length != 48)
+            {
+                throw new ArgumentException("Invalid input length. Expected 48 bytes for each field element.");
+            }
+
+            blst_fp_from_bendian(_point, fp1);
+            blst_fp_from_bendian(_point[6..], fp2);
+            blst_fp_from_bendian(_point[12..], fp3);
+            blst_fp_from_bendian(_point[18..], fp4);
         }
 
         public P2Affine(P2 jacobian) : this()
@@ -1390,9 +1449,7 @@ public static partial class Bls
             }
 
             int affinesLen = npoints * P2Affine.Sz;
-            int scratchLen = (int)(blst_p2s_mult_pippenger_scratch_sizeof((size_t)npoints) / sizeof(long));
             long[] affines = ArrayPool<long>.Shared.Rent(affinesLen);
-            long[] scratch = ArrayPool<long>.Shared.Rent(scratchLen);
 
             try
             {
@@ -1403,7 +1460,43 @@ public static partial class Bls
                     blst_p2s_to_affine(affines.AsSpan(0, affinesLen), points, (size_t)npoints);
                 }
 
-                fixed (long* affinesPtr = affines)
+                return MultiMultAffine(affines.AsSpan(0, affinesLen), rawScalars, npoints);
+            }
+            finally
+            {
+                ArrayPool<long>.Shared.Return(affines);
+            }
+        }
+
+        /// <summary>
+        /// As <see cref="MultiMult"/>, but over affine points, skipping the Jacobian-to-affine
+        /// batch conversion.
+        /// </summary>
+        public readonly unsafe P2 MultiMultAffine(scoped ReadOnlySpan<long> rawAffines, scoped ReadOnlySpan<byte> rawScalars, int npoints)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(npoints);
+            if (rawAffines.Length < npoints * P2Affine.Sz)
+            {
+                throw new ArgumentException($"Insufficient points for the given count. Expected {npoints * P2Affine.Sz} longs.", nameof(rawAffines));
+            }
+            if (rawScalars.Length < npoints * 32)
+            {
+                throw new ArgumentException($"Insufficient scalars for the given count. Expected {npoints * 32} bytes.", nameof(rawScalars));
+            }
+
+            // blst does not support an empty multiplication; the result is the point at infinity
+            if (npoints == 0)
+            {
+                Zero();
+                return this;
+            }
+
+            int scratchLen = (int)(blst_p2s_mult_pippenger_scratch_sizeof((size_t)npoints) / sizeof(long));
+            long[] scratch = ArrayPool<long>.Shared.Rent(scratchLen);
+
+            try
+            {
+                fixed (long* affinesPtr = rawAffines)
                 fixed (byte* scalarsPtr = rawScalars)
                 fixed (long* scratchPtr = scratch)
                 {
@@ -1415,7 +1508,6 @@ public static partial class Bls
             finally
             {
                 ArrayPool<long>.Shared.Return(scratch);
-                ArrayPool<long>.Shared.Return(affines);
             }
 
             return this;
@@ -1510,6 +1602,12 @@ public static partial class Bls
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     private static partial void blst_miller_loop_lines(Span<long> ret, ReadOnlySpan<long> qlines, ReadOnlySpan<long> p);
 
+    // void blst_miller_loop_n(blst_fp12 *ret, const blst_p2_affine *const Qs[],
+    //                                         const blst_p1_affine *const Ps[], size_t n);
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static unsafe partial void blst_miller_loop_n(Span<long> ret, long** Qs, long** Ps, size_t n);
+
     public readonly ref struct PT
     {
         public readonly ReadOnlySpan<long> Fp12 { get => _fp12; }
@@ -1591,6 +1689,44 @@ public static partial class Bls
 
         public void MillerLoopLines(ReadOnlySpan<long> qlines, P1Affine p)
         { blst_miller_loop_lines(_fp12, qlines, p.Point); }
+
+        /// <summary>
+        /// Computes the product of the Miller loops of <paramref name="npairs"/> point pairs in a
+        /// single batched pass, sharing the Fp12 squarings across pairs. The points are stored
+        /// contiguously as affine points in <paramref name="qAffines"/> and <paramref name="pAffines"/>;
+        /// pairs where either point is at infinity must be filtered out by the caller.
+        /// Substantially faster than multiplying separate <see cref="MillerLoop(P2Affine, P1Affine)"/>
+        /// results when <paramref name="npairs"/> &gt; 1.
+        /// </summary>
+        public readonly unsafe PT MillerLoopN(scoped ReadOnlySpan<long> qAffines, scoped ReadOnlySpan<long> pAffines, int npairs)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(npairs);
+            if (qAffines.Length < npairs * P2Affine.Sz)
+            {
+                throw new ArgumentException($"Insufficient points for the given count. Expected {npairs * P2Affine.Sz} longs.", nameof(qAffines));
+            }
+            if (pAffines.Length < npairs * P1Affine.Sz)
+            {
+                throw new ArgumentException($"Insufficient points for the given count. Expected {npairs * P1Affine.Sz} longs.", nameof(pAffines));
+            }
+
+            // blst does not write the output for an empty batch; the empty product is one
+            if (npairs == 0)
+            {
+                One(_fp12);
+                return this;
+            }
+
+            // a [ptr, null] argument tells blst to read all points from one contiguous buffer
+            fixed (long* q = qAffines)
+            fixed (long* p = pAffines)
+            {
+                long** qs = stackalloc long*[2] { q, null };
+                long** ps = stackalloc long*[2] { p, null };
+                blst_miller_loop_n(_fp12, qs, ps, (size_t)npairs);
+            }
+            return this;
+        }
     }
 
     [LibraryImport(LibraryName)]
