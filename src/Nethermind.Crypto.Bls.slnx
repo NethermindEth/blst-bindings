@@ -4,6 +4,7 @@
     <File Path="Directory.Packages.props" />
   </Folder>
   <Project Path="Nethermind.Crypto.Bls.Bench/Nethermind.Crypto.Bls.Bench.csproj" />
+  <Project Path="Nethermind.Crypto.Bls.Gen/Nethermind.Crypto.Bls.Gen.csproj" />
   <Project Path="Nethermind.Crypto.Bls/Nethermind.Crypto.Bls.csproj" />
   <Project Path="Nethermind.Crypto.Test/Nethermind.Crypto.Test.csproj" />
 </Solution>
