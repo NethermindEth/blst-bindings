@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 Demerzel Solutions Limited
+// SPDX-FileCopyrightText: 2026 Demerzel Solutions Limited
 // SPDX-License-Identifier: MIT
 
 // Renders Bls.G1.cs and Bls.G2.cs from PointGroup.template. The G1 and G2 bindings are
@@ -57,6 +57,7 @@ static string Render(string[] template, Group group)
     output.AppendLine("#nullable enable");
     output.AppendLine();
 
+    // conditional blocks must be flat (non-nested) and paired: //<<gN-only ... //gN-only>>
     string? skippedGroup = null;
     foreach (string line in template)
     {

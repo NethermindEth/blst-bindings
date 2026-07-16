@@ -3,8 +3,4 @@
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="PointGroup.template" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
 </Project>
