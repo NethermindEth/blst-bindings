@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 Demerzel Solutions Limited
+// SPDX-FileCopyrightText: 2026 Demerzel Solutions Limited
 // SPDX-License-Identifier: MIT
 
 using System;
@@ -206,6 +206,16 @@ public class BlsSignatureTests
         Bls.Pairing ctx = new(true, Dst);
         Bls.ERROR err = ctx.Aggregate(new G1Affine(), sig.ToAffine(), msg);
         Assert.That(err, Is.EqualTo(Bls.ERROR.PKISINFINITY));
+    }
+
+    [Test]
+    public void DefaultPairingConstructorInitializesContext()
+    {
+        // new Pairing() used to zero-init to a null-backed buffer and crash on first use
+        Bls.Pairing ctx = new();
+        ctx.RawAggregate(G1.Generator(), G2.Generator());
+        ctx.Commit();
+        Assert.That(ctx.AsFp12().IsOne(), Is.False);
     }
 
     [Test]

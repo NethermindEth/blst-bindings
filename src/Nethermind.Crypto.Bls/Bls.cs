@@ -683,11 +683,10 @@ public static partial class Bls
             => _point.Clear();
 
         /// <summary>
-        /// Decodes a 48-byte compressed or 96-byte uncompressed point.
-        /// Unlike <see cref="P1Affine.TryDecode"/>, the uncompressed path reads the two field
-        /// elements as-is with no validation (no canonicality, flag-bit, curve or subgroup checks),
-        /// so that callers implementing protocols such as EIP-2537 can validate separately.
-        /// Call <see cref="OnCurve"/>/<see cref="InGroup"/> where validation is required.
+        /// Decodes a 48-byte compressed or 96-byte uncompressed point. Unlike
+        /// <see cref="P1Affine.TryDecode"/>, the uncompressed path applies no validation (no
+        /// canonicality, flag-bit, curve or subgroup checks) so EIP-2537-style callers can validate
+        /// separately via <see cref="OnCurve"/>/<see cref="InGroup"/>.
         /// </summary>
         public bool TryDecode(scoped ReadOnlySpan<byte> inp, out ERROR err)
         {
@@ -859,16 +858,16 @@ public static partial class Bls
         public readonly unsafe P1 MultiMult(scoped ReadOnlySpan<long> rawPoints, scoped ReadOnlySpan<byte> rawScalars, int npoints)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(npoints);
-            if (rawPoints.Length < npoints * Sz)
+            if (rawPoints.Length < (long)npoints * Sz)
             {
-                throw new ArgumentException($"Insufficient points for the given count. Expected {npoints * Sz} longs.", nameof(rawPoints));
+                throw new ArgumentException($"Insufficient points for the given count. Expected {(long)npoints * Sz} longs.", nameof(rawPoints));
             }
-            if (rawScalars.Length < npoints * 32)
+            if (rawScalars.Length < (long)npoints * 32)
             {
-                throw new ArgumentException($"Insufficient scalars for the given count. Expected {npoints * 32} bytes.", nameof(rawScalars));
+                throw new ArgumentException($"Insufficient scalars for the given count. Expected {(long)npoints * 32} bytes.", nameof(rawScalars));
             }
 
-            // blst does not support an empty multiplication; the result is the point at infinity
+            // the empty product is the point at infinity, which blst does not handle
             if (npoints == 0)
             {
                 Zero();
@@ -880,7 +879,7 @@ public static partial class Bls
 
             try
             {
-                // a [ptr, null] argument tells blst to read all points from one contiguous buffer
+                // [ptr, null] tells blst to read npoints from one contiguous buffer
                 fixed (long* rawPointsPtr = rawPoints)
                 {
                     long** points = stackalloc long*[2] { rawPointsPtr, null };
@@ -902,16 +901,16 @@ public static partial class Bls
         public readonly unsafe P1 MultiMultAffine(scoped ReadOnlySpan<long> rawAffines, scoped ReadOnlySpan<byte> rawScalars, int npoints)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(npoints);
-            if (rawAffines.Length < npoints * P1Affine.Sz)
+            if (rawAffines.Length < (long)npoints * P1Affine.Sz)
             {
-                throw new ArgumentException($"Insufficient points for the given count. Expected {npoints * P1Affine.Sz} longs.", nameof(rawAffines));
+                throw new ArgumentException($"Insufficient points for the given count. Expected {(long)npoints * P1Affine.Sz} longs.", nameof(rawAffines));
             }
-            if (rawScalars.Length < npoints * 32)
+            if (rawScalars.Length < (long)npoints * 32)
             {
-                throw new ArgumentException($"Insufficient scalars for the given count. Expected {npoints * 32} bytes.", nameof(rawScalars));
+                throw new ArgumentException($"Insufficient scalars for the given count. Expected {(long)npoints * 32} bytes.", nameof(rawScalars));
             }
 
-            // blst does not support an empty multiplication; the result is the point at infinity
+            // the empty product is the point at infinity, which blst does not handle
             if (npoints == 0)
             {
                 Zero();
@@ -1266,11 +1265,10 @@ public static partial class Bls
             => _point.Clear();
 
         /// <summary>
-        /// Decodes a 96-byte compressed or 192-byte uncompressed point.
-        /// Unlike <see cref="P2Affine.TryDecode"/>, the uncompressed path reads the four field
-        /// elements as-is with no validation (no canonicality, flag-bit, curve or subgroup checks),
-        /// so that callers implementing protocols such as EIP-2537 can validate separately.
-        /// Call <see cref="OnCurve"/>/<see cref="InGroup"/> where validation is required.
+        /// Decodes a 96-byte compressed or 192-byte uncompressed point. Unlike
+        /// <see cref="P2Affine.TryDecode"/>, the uncompressed path applies no validation (no
+        /// canonicality, flag-bit, curve or subgroup checks) so EIP-2537-style callers can validate
+        /// separately via <see cref="OnCurve"/>/<see cref="InGroup"/>.
         /// </summary>
         public bool TryDecode(scoped ReadOnlySpan<byte> inp, out ERROR err)
         {
@@ -1432,16 +1430,16 @@ public static partial class Bls
         public readonly unsafe P2 MultiMult(scoped ReadOnlySpan<long> rawPoints, scoped ReadOnlySpan<byte> rawScalars, int npoints)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(npoints);
-            if (rawPoints.Length < npoints * Sz)
+            if (rawPoints.Length < (long)npoints * Sz)
             {
-                throw new ArgumentException($"Insufficient points for the given count. Expected {npoints * Sz} longs.", nameof(rawPoints));
+                throw new ArgumentException($"Insufficient points for the given count. Expected {(long)npoints * Sz} longs.", nameof(rawPoints));
             }
-            if (rawScalars.Length < npoints * 32)
+            if (rawScalars.Length < (long)npoints * 32)
             {
-                throw new ArgumentException($"Insufficient scalars for the given count. Expected {npoints * 32} bytes.", nameof(rawScalars));
+                throw new ArgumentException($"Insufficient scalars for the given count. Expected {(long)npoints * 32} bytes.", nameof(rawScalars));
             }
 
-            // blst does not support an empty multiplication; the result is the point at infinity
+            // the empty product is the point at infinity, which blst does not handle
             if (npoints == 0)
             {
                 Zero();
@@ -1453,7 +1451,7 @@ public static partial class Bls
 
             try
             {
-                // a [ptr, null] argument tells blst to read all points from one contiguous buffer
+                // [ptr, null] tells blst to read npoints from one contiguous buffer
                 fixed (long* rawPointsPtr = rawPoints)
                 {
                     long** points = stackalloc long*[2] { rawPointsPtr, null };
@@ -1475,16 +1473,16 @@ public static partial class Bls
         public readonly unsafe P2 MultiMultAffine(scoped ReadOnlySpan<long> rawAffines, scoped ReadOnlySpan<byte> rawScalars, int npoints)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(npoints);
-            if (rawAffines.Length < npoints * P2Affine.Sz)
+            if (rawAffines.Length < (long)npoints * P2Affine.Sz)
             {
-                throw new ArgumentException($"Insufficient points for the given count. Expected {npoints * P2Affine.Sz} longs.", nameof(rawAffines));
+                throw new ArgumentException($"Insufficient points for the given count. Expected {(long)npoints * P2Affine.Sz} longs.", nameof(rawAffines));
             }
-            if (rawScalars.Length < npoints * 32)
+            if (rawScalars.Length < (long)npoints * 32)
             {
-                throw new ArgumentException($"Insufficient scalars for the given count. Expected {npoints * 32} bytes.", nameof(rawScalars));
+                throw new ArgumentException($"Insufficient scalars for the given count. Expected {(long)npoints * 32} bytes.", nameof(rawScalars));
             }
 
-            // blst does not support an empty multiplication; the result is the point at infinity
+            // the empty product is the point at infinity, which blst does not handle
             if (npoints == 0)
             {
                 Zero();
@@ -1691,33 +1689,32 @@ public static partial class Bls
         { blst_miller_loop_lines(_fp12, qlines, p.Point); }
 
         /// <summary>
-        /// Computes the product of the Miller loops of <paramref name="npairs"/> point pairs in a
-        /// single batched pass, sharing the Fp12 squarings across pairs. The points are stored
-        /// contiguously as affine points in <paramref name="qAffines"/> and <paramref name="pAffines"/>;
-        /// pairs where either point is at infinity must be filtered out by the caller.
-        /// Substantially faster than multiplying separate <see cref="MillerLoop(P2Affine, P1Affine)"/>
-        /// results when <paramref name="npairs"/> &gt; 1.
+        /// Computes the product of <paramref name="npairs"/> Miller loops in one batched pass,
+        /// sharing the Fp12 squarings across pairs (faster than multiplying separate
+        /// <see cref="MillerLoop(P2Affine, P1Affine)"/> results). The affine points are stored
+        /// contiguously in <paramref name="qAffines"/>/<paramref name="pAffines"/>; pairs with a
+        /// point at infinity must be filtered out by the caller.
         /// </summary>
         public readonly unsafe PT MillerLoopN(scoped ReadOnlySpan<long> qAffines, scoped ReadOnlySpan<long> pAffines, int npairs)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(npairs);
-            if (qAffines.Length < npairs * P2Affine.Sz)
+            if (qAffines.Length < (long)npairs * P2Affine.Sz)
             {
-                throw new ArgumentException($"Insufficient points for the given count. Expected {npairs * P2Affine.Sz} longs.", nameof(qAffines));
+                throw new ArgumentException($"Insufficient points for the given count. Expected {(long)npairs * P2Affine.Sz} longs.", nameof(qAffines));
             }
-            if (pAffines.Length < npairs * P1Affine.Sz)
+            if (pAffines.Length < (long)npairs * P1Affine.Sz)
             {
-                throw new ArgumentException($"Insufficient points for the given count. Expected {npairs * P1Affine.Sz} longs.", nameof(pAffines));
+                throw new ArgumentException($"Insufficient points for the given count. Expected {(long)npairs * P1Affine.Sz} longs.", nameof(pAffines));
             }
 
-            // blst does not write the output for an empty batch; the empty product is one
+            // the empty product is one, which blst does not write
             if (npairs == 0)
             {
                 One(_fp12);
                 return this;
             }
 
-            // a [ptr, null] argument tells blst to read all points from one contiguous buffer
+            // [ptr, null] tells blst to read npairs from one contiguous buffer
             fixed (long* q = qAffines)
             fixed (long* p = pAffines)
             {
@@ -1761,8 +1758,7 @@ public static partial class Bls
         private readonly Span<long> _ctx;
         private static readonly int _sz = (int)blst_pairing_sizeof() / sizeof(long);
 
-        // without this, new Pairing() would skip the constructor below and produce an instance
-        // backed by a null buffer, crashing the process on first use
+        // without this, new Pairing() zero-inits to a null-backed buffer that crashes on first use
         public Pairing() : this(false)
         { }
 
@@ -1774,10 +1770,8 @@ public static partial class Bls
             Span<byte> dst = new byte[add_len * sizeof(long)];
             DST.CopyTo(dst);
 
-            // The DST is stored in the tail of the context array, immediately after the context
-            // struct. blst detects a DST placed at ctx + sizeof(ctx) and re-derives its address
-            // from the context pointer on every use, so this stays valid even if the GC moves
-            // the array between calls.
+            // DST lives in the tail, right after the context struct: blst re-derives its address
+            // from the context pointer each call, so it survives the GC moving the array
             _ctx = new long[Sz + add_len];
 
             for (int i = 0; i < add_len; i++)
@@ -1856,8 +1850,7 @@ public static partial class Bls
         public readonly unsafe PT AsFp12()
         {
             long[] res = new long[PT.Sz];
-            // keep the context pinned while copying: blst_pairing_as_fp12 returns a pointer
-            // into the context, which would be left dangling if the GC moved the array
+            // blst_pairing_as_fp12 returns a pointer into the context; pin it while copying
             fixed (long* ctx = _ctx)
             {
                 new ReadOnlySpan<long>((void*)blst_pairing_as_fp12(_ctx), PT.Sz).CopyTo(res);
