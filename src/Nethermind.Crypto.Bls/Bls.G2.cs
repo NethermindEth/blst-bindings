@@ -451,31 +451,20 @@ public static partial class Bls
             return this;
         }
 
-        private readonly byte[] PrepareMult(in BigInteger scalar)
-        {
-            byte[] val;
-            if (scalar.Sign < 0)
-            {
-                val = BigInteger.Negate(scalar).ToByteArray();
-                blst_p2_cneg(_point, true);
-            }
-            else
-            {
-                val = scalar.ToByteArray();
-            }
-            return val;
-        }
-        private static size_t GetSize(ReadOnlySpan<byte> val)
-        {
-            int len = val.Length;
-            if (val[len - 1] == 0) len--;
-            return (size_t)len;
-        }
         public readonly P2 Mult(in BigInteger scalar)
         {
-            byte[] val = PrepareMult(scalar);
-            size_t len = GetSize(val);
-            blst_p2_mult(_point, _point, val, len * 8);
+            // negate the point for a negative scalar and multiply by its magnitude, writing the
+            // little-endian scalar bytes to the stack to avoid allocating a byte[] per call
+            BigInteger magnitude = scalar;
+            if (scalar.Sign < 0)
+            {
+                blst_p2_cneg(_point, true);
+                magnitude = -scalar;
+            }
+            int len = magnitude.GetByteCount(isUnsigned: true);
+            Span<byte> val = stackalloc byte[len];
+            magnitude.TryWriteBytes(val, out _, isUnsigned: true, isBigEndian: false);
+            blst_p2_mult(_point, _point, val, (size_t)(len * 8));
             return this;
         }
 
