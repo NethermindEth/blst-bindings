@@ -119,6 +119,28 @@ jobs:
           retention-days: ${{ env.RETENTION }}
           if-no-files-found: error
 
+  verify-generated:
+    name: Verify generated code and formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out blst-bindings repository
+        uses: actions/checkout@v5
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+
+      - name: Regenerate point group bindings
+        run: dotnet run --project src/Nethermind.Crypto.Bls.Gen
+
+      # stage first so newly generated (untracked) files are also compared
+      - name: Check for drift
+        run: |
+          git add -A
+          git diff --cached --exit-code
+
+      - name: Verify formatting
+        run: dotnet format whitespace src/Nethermind.Crypto.Bls.slnx --verify-no-changes
+
   test:
     name: Test
     needs: [build-linux, build-macos, build-windows]

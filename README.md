@@ -18,3 +18,10 @@ Run the benchmarks (optionally filtered by class, e.g. `--filter '*MsmBenchmarks
 ```sh
 dotnet run --project src/Nethermind.Crypto.Bls.Bench -c release
 ```
+
+`Bls.G1.cs` and `Bls.G2.cs` are generated from a shared template. To change them, edit
+`src/Nethermind.Crypto.Bls.Gen/PointGroup.template` and regenerate (CI verifies they match):
+
+```sh
+dotnet run --project src/Nethermind.Crypto.Bls.Gen
+```

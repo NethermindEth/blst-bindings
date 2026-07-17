@@ -184,7 +184,7 @@ public class BlsTests
     {
         var p = G1Affine.Generator();
         var q = G2Affine.Generator();
-        
+
         Span<long> lines = new long[68 * 6 * 6];
         q.PrecomputeLines(lines);
 
