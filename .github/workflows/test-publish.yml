@@ -10,27 +10,22 @@ on:
         default: master
         description: blst version
         required: false
-      publish:
-        default: false
-        description: Publish package
-        required: false
-        type: boolean
       preview:
         default: true
         description: Publish as preview
         required: true
         type: boolean
-      feed:
-        description: NuGet feed
-        required: true
-        default: Staging
+      publish:
+        description: Publish to NuGet
+        default: 'No'
         type: choice
         options:
-          - Production
+          - 'No'
           - Staging
+          - Production
 
 env:
-  BLST_VERSION: ${{ github.event.inputs.ref || 'master' }} 
+  BLST_VERSION: ${{ github.event.inputs.ref || 'master' }}
   RETENTION: 2
 
 jobs:
@@ -42,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out blst repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: supranational/blst
           ref: ${{ env.BLST_VERSION }}
@@ -75,7 +70,7 @@ jobs:
       ARCH: ${{ matrix.arch == 'arm64' && 'arm64' || 'x64' }}
     steps:
       - name: Check out blst repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: supranational/blst
           ref: ${{ env.BLST_VERSION }}
@@ -86,7 +81,7 @@ jobs:
         run: ./build.sh -shared -D__BLST_PORTABLE__ --target=${{ matrix.arch == 'arm64' && 'aarch64-apple-darwin' || 'x86_64-apple-darwin' }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: osx-${{ env.ARCH }}
           path: blst/libblst.dylib
@@ -98,7 +93,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Check out blst repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: supranational/blst
           ref: ${{ env.BLST_VERSION }}
@@ -112,7 +107,7 @@ jobs:
         shell: pwsh
         run: ./build.bat -shared -D__BLST_PORTABLE__
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: win-x64
           path: blst/blst.dll
@@ -124,10 +119,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out blst-bindings repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
 
       - name: Regenerate point group bindings
         run: dotnet run --project src/Nethermind.Crypto.Bls.Gen
@@ -144,19 +139,23 @@ jobs:
   test:
     name: Test
     needs: [build-linux, build-macos, build-windows]
-    env:
-      BUILD_CONFIG: release
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      BUILD_CONFIG: release
+      NUGET_HOST: ${{ inputs.publish == 'Staging' && 'https://int.nugettest.org' || 'https://www.nuget.org' }}
     steps:
       - name: Check out blst-bindings repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: src/Nethermind.Crypto.Bls/runtimes
 
@@ -171,7 +170,7 @@ jobs:
           mv -f win-x64/blst.dll win-x64/native/blst.dll
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
 
       - name: Restore dependencies
         working-directory: src
@@ -185,11 +184,19 @@ jobs:
         working-directory: src/Nethermind.Crypto.Test
         run: dotnet test -c ${{ env.BUILD_CONFIG }} --no-restore
 
+      - name: NuGet login
+        uses: nuget/login@v1
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish != 'No' && matrix.os == 'ubuntu-latest' }}
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+          audience: ${{ env.NUGET_HOST }}
+          token-service-url: ${{ env.NUGET_HOST }}/api/v2/token
+
       - name: Publish
-        if: ${{ inputs.publish && matrix.os == 'ubuntu-latest' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish != 'No' && matrix.os == 'ubuntu-latest' }}
         working-directory: src/Nethermind.Crypto.Bls
         run: |
           dotnet pack -c ${{ env.BUILD_CONFIG }} --no-build ${{ inputs.preview && format('-p:VersionSuffix=preview.{0}', github.run_number) || '' }}
           dotnet nuget push bin/${{ env.BUILD_CONFIG }}/*.nupkg \
-            -k ${{ github.event.inputs.feed == 'Production' && secrets.NUGET_API_KEY || secrets.NUGETTEST_API_KEY }} \
-            -s ${{ github.event.inputs.feed == 'Production' && 'https://api.nuget.org/v3/index.json' || 'https://apiint.nugettest.org/v3/index.json' }}
+            -k "${{ steps.login.outputs.NUGET_API_KEY }}" -s ${{ env.NUGET_HOST }}/api/v2/package
