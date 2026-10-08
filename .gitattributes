@@ -1,1 +1,4 @@
 * text=auto eol=lf
+src/Nethermind.Crypto.Bls/runtimes/**/*.dll filter=lfs diff=lfs merge=lfs -text
+src/Nethermind.Crypto.Bls/runtimes/**/*.dylib filter=lfs diff=lfs merge=lfs -text
+src/Nethermind.Crypto.Bls/runtimes/**/*.so filter=lfs diff=lfs merge=lfs -text

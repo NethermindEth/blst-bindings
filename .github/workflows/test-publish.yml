@@ -4,17 +4,10 @@ on:
   pull_request:
   push:
     branches: [main]
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
-      ref:
-        default: master
-        description: blst version
-        required: false
-      preview:
-        default: true
-        description: Publish as preview
-        required: true
-        type: boolean
       publish:
         description: Publish to NuGet
         default: 'No'
@@ -24,101 +17,12 @@ on:
           - Staging
           - Production
 
-env:
-  BLST_VERSION: ${{ github.event.inputs.ref || 'master' }}
-  RETENTION: 2
-
 jobs:
-  build-linux:
-    name: Linux build
-    strategy:
-      matrix:
-        arch: [arm64, x64]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out blst repository
-        uses: actions/checkout@v7
-        with:
-          repository: supranational/blst
-          ref: ${{ env.BLST_VERSION }}
-          path: blst
-
-      - name: Set up GNU C compiler for arm64
-        if: matrix.arch == 'arm64'
-        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
-
-      - name: Build
-        working-directory: blst
-        run: |
-          ${{ matrix.arch == 'arm64' && 'CC=aarch64-linux-gnu-gcc' || '' }} ./build.sh -shared -D__BLST_PORTABLE__
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-${{ matrix.arch }}
-          path: blst/libblst.so
-          retention-days: ${{ env.RETENTION }}
-          if-no-files-found: error
-
-  build-macos:
-    name: macOS build
-    strategy:
-      matrix:
-        arch: [arm64, x86_64]
-    runs-on: macos-latest
-    env:
-      ARCH: ${{ matrix.arch == 'arm64' && 'arm64' || 'x64' }}
-    steps:
-      - name: Check out blst repository
-        uses: actions/checkout@v7
-        with:
-          repository: supranational/blst
-          ref: ${{ env.BLST_VERSION }}
-          path: blst
-
-      - name: Build
-        working-directory: blst
-        run: ./build.sh -shared -D__BLST_PORTABLE__ --target=${{ matrix.arch == 'arm64' && 'aarch64-apple-darwin' || 'x86_64-apple-darwin' }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: osx-${{ env.ARCH }}
-          path: blst/libblst.dylib
-          retention-days: ${{ env.RETENTION }}
-          if-no-files-found: error
-
-  build-windows:
-    name: Windows build
-    runs-on: windows-latest
-    steps:
-      - name: Check out blst repository
-        uses: actions/checkout@v7
-        with:
-          repository: supranational/blst
-          ref: ${{ env.BLST_VERSION }}
-          path: blst
-
-      - name: Set up PATH
-        uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Build
-        working-directory: blst
-        shell: pwsh
-        run: ./build.bat -shared -D__BLST_PORTABLE__
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: win-x64
-          path: blst/blst.dll
-          retention-days: ${{ env.RETENTION }}
-          if-no-files-found: error
-
   verify-generated:
     name: Verify generated code and formatting
     runs-on: ubuntu-latest
     steps:
-      - name: Check out blst-bindings repository
+      - name: Check out repository
         uses: actions/checkout@v7
 
       - name: Set up .NET
@@ -138,56 +42,66 @@ jobs:
 
   test:
     name: Test
-    needs: [build-linux, build-macos, build-windows]
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+          - macos-latest
+          - macos-26-intel
+          - windows-latest
+          - windows-11-arm
     runs-on: ${{ matrix.os }}
-    permissions:
-      contents: read
-      id-token: write
-    env:
-      BUILD_CONFIG: release
-      NUGET_URL: ${{ inputs.publish == 'Staging' && 'https://int.nugettest.org' || 'https://www.nuget.org' }}
-      NUGET_SOURCE: ${{ inputs.publish == 'Staging' && 'https://apiint.nugettest.org' || 'https://api.nuget.org' }}/v3/index.json
     steps:
-      - name: Check out blst-bindings repository
+      - name: Check out repository
         uses: actions/checkout@v7
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v8
         with:
-          path: src/Nethermind.Crypto.Bls/runtimes
-
-      - name: Move artifacts
-        working-directory: src/Nethermind.Crypto.Bls/runtimes
-        shell: bash
-        run: |
-          mv -f linux-arm64/libblst.so linux-arm64/native/libblst.so
-          mv -f linux-x64/libblst.so linux-x64/native/libblst.so
-          mv -f osx-arm64/libblst.dylib osx-arm64/native/libblst.dylib
-          mv -f osx-x64/libblst.dylib osx-x64/native/libblst.dylib
-          mv -f win-x64/blst.dll win-x64/native/blst.dll
+          lfs: true
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
 
-      - name: Restore dependencies
+      # an emulated x64 runtime would silently test win-x64/blst.dll instead
+      - name: Verify runtime architecture
+        if: matrix.os == 'windows-11-arm'
+        shell: pwsh
+        run: |
+          $rid = dotnet --info | Select-String '^\s*RID:'
+          Write-Output $rid
+          if ($rid -notmatch 'win-arm64') { throw 'Expected a native arm64 .NET runtime' }
+
+      - name: Install dependencies
         working-directory: src
         run: dotnet restore
 
-      - name: Build
-        working-directory: src
-        run: dotnet build -c ${{ env.BUILD_CONFIG }} --no-restore ${{ inputs.preview && format('-p:VersionSuffix=preview.{0}', github.run_number) || '' }}
-
       - name: Test
         working-directory: src/Nethermind.Crypto.Test
-        run: dotnet test -c ${{ env.BUILD_CONFIG }} --no-restore
+        run: dotnet test -c release --no-restore
+
+  publish:
+    name: Publish
+    needs: [verify-generated, test]
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish != 'No' || github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      NUGET_URL: ${{ github.event.inputs.publish == 'Staging' && 'https://int.nugettest.org' || 'https://www.nuget.org' }}
+      NUGET_SOURCE: ${{ github.event.inputs.publish == 'Staging' && 'https://apiint.nugettest.org' || 'https://api.nuget.org' }}/v3/index.json
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          lfs: true
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
 
       - name: NuGet login
         uses: nuget/login@v1
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish != 'No' && matrix.os == 'ubuntu-latest' }}
         id: login
         with:
           user: ${{ secrets.NUGET_USER }}
@@ -195,9 +109,8 @@ jobs:
           token-service-url: ${{ env.NUGET_URL }}/api/v2/token
 
       - name: Publish
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish != 'No' && matrix.os == 'ubuntu-latest' }}
-        working-directory: src/Nethermind.Crypto.Bls
+        working-directory: src
         run: |
-          dotnet pack -c ${{ env.BUILD_CONFIG }} --no-build ${{ inputs.preview && format('-p:VersionSuffix=preview.{0}', github.run_number) || '' }}
-          dotnet nuget push bin/${{ env.BUILD_CONFIG }}/*.nupkg \
+          dotnet pack ./Nethermind.Crypto.Bls -c release
+          dotnet nuget push ./Nethermind.Crypto.Bls/bin/release/*.nupkg \
             -k "${{ steps.login.outputs.NUGET_API_KEY }}" -s ${{ env.NUGET_SOURCE }}

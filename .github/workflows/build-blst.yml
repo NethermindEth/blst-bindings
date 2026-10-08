@@ -1,0 +1,165 @@
+name: Build blst
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: blst repo ref
+        required: true
+        default: master
+        type: string
+      create-pr:
+        description: Create a pull request
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  RETENTION: 7
+
+jobs:
+  build-linux:
+    name: Linux build
+    strategy:
+      matrix:
+        arch: [arm64, x64]
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    container:
+      image: ubuntu:22.04
+      options: --platform ${{ matrix.arch == 'arm64' && 'linux/arm64' || 'linux/amd64' }}
+    steps:
+      - name: Check out blst repository
+        uses: actions/checkout@v7
+        with:
+          repository: supranational/blst
+          ref: ${{ inputs.ref }}
+
+      - name: Install dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential
+
+      - name: Build
+        run: |
+          sh ./build.sh -shared -D__BLST_PORTABLE__
+          strip libblst.so
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-${{ matrix.arch }}
+          path: libblst.so
+          retention-days: ${{ env.RETENTION }}
+          if-no-files-found: error
+
+  build-macos:
+    name: macOS build
+    strategy:
+      matrix:
+        arch: [arm64, x64]
+    runs-on: ${{ matrix.arch == 'arm64' && 'macos-latest' || 'macos-26-intel' }}
+    steps:
+      - name: Check out blst repository
+        uses: actions/checkout@v7
+        with:
+          repository: supranational/blst
+          ref: ${{ inputs.ref }}
+
+      - name: Build
+        run: |
+          ./build.sh -shared -D__BLST_PORTABLE__
+          strip -x libblst.dylib
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: osx-${{ matrix.arch }}
+          path: libblst.dylib
+          retention-days: ${{ env.RETENTION }}
+          if-no-files-found: error
+
+  build-windows:
+    name: Windows build
+    strategy:
+      matrix:
+        arch: [arm64, x64]
+    runs-on: ${{ matrix.arch == 'arm64' && 'windows-11-arm' || 'windows-latest' }}
+    steps:
+      - name: Check out blst repository
+        uses: actions/checkout@v7
+        with:
+          repository: supranational/blst
+          ref: ${{ inputs.ref }}
+
+      # build.bat picks the assembly flavor from the cl banner, so the toolchain must match the target
+      - name: Set up PATH
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+
+      # -arm64x is intentionally not used: it links with /noentry, which skips DllMain and thus
+      # the runtime CPU feature detection (e.g., SHA-2 extensions on arm64)
+      - name: Build
+        shell: pwsh
+        run: ./build.bat -shared -D__BLST_PORTABLE__
+
+      - name: Verify machine type
+        shell: pwsh
+        run: |
+          $machine = dumpbin /headers blst.dll | Select-String 'machine \('
+          Write-Output $machine
+          if ($machine -notmatch '${{ matrix.arch == 'arm64' && 'ARM64' || 'x64' }}\)') { throw 'Unexpected machine type' }
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: win-${{ matrix.arch }}
+          path: blst.dll
+          retention-days: ${{ env.RETENTION }}
+          if-no-files-found: error
+
+  create-pr:
+    name: Create a pull request
+    needs: [build-linux, build-macos, build-windows]
+    if: inputs.create-pr
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          lfs: true
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: src/Nethermind.Crypto.Bls/runtimes
+
+      - name: Move artifacts
+        working-directory: src/Nethermind.Crypto.Bls/runtimes
+        run: |
+          mv -f linux-arm64/libblst.so linux-arm64/native/libblst.so
+          mv -f linux-x64/libblst.so linux-x64/native/libblst.so
+          mv -f osx-arm64/libblst.dylib osx-arm64/native/libblst.dylib
+          mv -f osx-x64/libblst.dylib osx-x64/native/libblst.dylib
+          mv -f win-arm64/blst.dll win-arm64/native/blst.dll
+          mv -f win-x64/blst.dll win-x64/native/blst.dll
+
+      - name: Create a pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF: ${{ inputs.ref }}
+        run: |
+          head_branch=feature/blst-build-$GITHUB_RUN_NUMBER-$GITHUB_RUN_ATTEMPT
+          title="chore(deps): update blst binaries to ${REF#v}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b $head_branch
+          git add -A
+          git commit -am "Update blst binaries"
+          git push origin $head_branch
+          gh pr create -B $GITHUB_REF_NAME -H $head_branch -t "$title" -b "Built from blst $REF."
