@@ -47,7 +47,7 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - ubuntu-24.04-arm
+          - ubuntu-26.04-arm
           - macos-latest
           - macos-26-intel
           - windows-latest
