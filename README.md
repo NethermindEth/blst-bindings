@@ -25,3 +25,9 @@ dotnet run --project src/Nethermind.Crypto.Bls.Bench -c release
 ```sh
 dotnet run --project src/Nethermind.Crypto.Bls.Gen
 ```
+
+## License
+
+This project is licensed under the [MIT](https://github.com/nethermindeth/blst-bindings/blob/main/LICENSE) license.
+
+The package also ships prebuilt blst binaries, used under [Apache-2.0](https://github.com/supranational/blst/blob/master/LICENSE). See [THIRD-PARTY-NOTICES](https://github.com/nethermindeth/blst-bindings/blob/main/THIRD-PARTY-NOTICES) for the full text.
