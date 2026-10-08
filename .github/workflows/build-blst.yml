@@ -149,6 +149,16 @@ jobs:
           mv -f win-arm64/blst.dll win-arm64/native/blst.dll
           mv -f win-x64/blst.dll win-x64/native/blst.dll
 
+      - name: Update version
+        env:
+          REF: ${{ inputs.ref }}
+        run: |
+          version=${REF#v}
+          if [[ $version =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+            sed -i "s|<VersionPrefix>.*</VersionPrefix>|<VersionPrefix>$version</VersionPrefix>|" \
+              src/Directory.Build.props
+          fi
+
       - name: Create a pull request
         env:
           GH_TOKEN: ${{ github.token }}

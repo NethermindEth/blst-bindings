@@ -82,20 +82,30 @@ jobs:
   publish:
     name: Publish
     needs: [verify-generated, test]
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish != 'No' || github.event_name == 'release'
+    if: github.event_name == 'workflow_dispatch' && inputs.publish != 'No' || github.event_name == 'release'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     env:
-      NUGET_URL: ${{ github.event.inputs.publish == 'Staging' && 'https://int.nugettest.org' || 'https://www.nuget.org' }}
-      NUGET_SOURCE: ${{ github.event.inputs.publish == 'Staging' && 'https://apiint.nugettest.org' || 'https://api.nuget.org' }}/v3/index.json
+      NUGET_URL: ${{ inputs.publish == 'Staging' && 'https://int.nugettest.org' || 'https://www.nuget.org' }}
+      NUGET_SOURCE: ${{ inputs.publish == 'Staging' && 'https://apiint.nugettest.org' || 'https://api.nuget.org' }}/v3/index.json
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
         with:
           lfs: true
+
+      - name: Detect version
+        id: version
+        working-directory: src
+        run: |
+          version_prefix=$(sed -n 's|.*<VersionPrefix>\(.*\)</VersionPrefix>.*|\1|p' Directory.Build.props)
+          version_suffix=$(sed -n 's|.*<VersionSuffix>\(.*\)</VersionSuffix>.*|\1|p' Directory.Build.props)
+          version=$version_prefix${version_suffix:+-$version_suffix}
+          echo "Detected version $version"
+          echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
@@ -111,6 +121,7 @@ jobs:
       - name: Publish
         working-directory: src
         run: |
-          dotnet pack ./Nethermind.Crypto.Bls -c release
+          dotnet pack ./Nethermind.Crypto.Bls -c release \
+            -p:Version=${{ steps.version.outputs.version }}.${{ github.run_number }}
           dotnet nuget push ./Nethermind.Crypto.Bls/bin/release/*.nupkg \
             -k "${{ steps.login.outputs.NUGET_API_KEY }}" -s ${{ env.NUGET_SOURCE }}
