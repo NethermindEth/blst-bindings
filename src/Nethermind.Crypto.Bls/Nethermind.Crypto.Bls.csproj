@@ -9,7 +9,7 @@
     <IncludeSymbols>true</IncludeSymbols>
     <PackageId>Nethermind.Crypto.Bls</PackageId>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://nethermind.io</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/nethermindeth/blst-bindings</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>cryptography elliptic-curve bls</PackageTags>
     <RepositoryType>git</RepositoryType>
