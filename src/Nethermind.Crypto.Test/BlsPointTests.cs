@@ -44,6 +44,62 @@ public class BlsPointTests
     }
 
     [Test]
+    public void SerializeToSpanMatchesSerialize()
+    {
+        G1 g1 = G1.Generator().Mult(12345);
+        G2 g2 = G2.Generator().Mult(12345);
+        G1 g1Infinity = G1.Generator();
+        g1Infinity.Zero();
+        G2 g2Infinity = G2.Generator();
+        g2Infinity.Zero();
+        Span<byte> g1Out = stackalloc byte[96];
+        Span<byte> g1Padded = stackalloc byte[96 + 1];
+        Span<byte> g1AffineOut = stackalloc byte[96];
+        Span<byte> g1InfinityOut = stackalloc byte[96];
+        Span<byte> g2Out = stackalloc byte[192];
+        Span<byte> g2AffineOut = stackalloc byte[192];
+        Span<byte> g2InfinityOut = stackalloc byte[192];
+
+        g1.Serialize(g1Out);
+        g1.Serialize(g1Padded);
+        g1.ToAffine().Serialize(g1AffineOut);
+        g1Infinity.Serialize(g1InfinityOut);
+        g2.Serialize(g2Out);
+        g2.ToAffine().Serialize(g2AffineOut);
+        g2Infinity.Serialize(g2InfinityOut);
+
+        byte[] g1Out1 = g1Out.ToArray(), g1Padded1 = g1Padded.ToArray(), g1AffineOut1 = g1AffineOut.ToArray();
+        byte[] g1InfinityOut1 = g1InfinityOut.ToArray(), g2Out1 = g2Out.ToArray(), g2AffineOut1 = g2AffineOut.ToArray();
+        byte[] g2InfinityOut1 = g2InfinityOut.ToArray();
+        byte[] g1Expected = g1.Serialize(), g2Expected = g2.Serialize();
+        byte[] g1InfinityExpected = g1Infinity.Serialize(), g2InfinityExpected = g2Infinity.Serialize();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(g1Out1, Is.EqualTo(g1Expected));
+            Assert.That(g1Padded1[..96], Is.EqualTo(g1Expected));
+            Assert.That(g1Padded1[96], Is.Zero);
+            Assert.That(g1AffineOut1, Is.EqualTo(g1Expected));
+            Assert.That(g1InfinityOut1, Is.EqualTo(g1InfinityExpected));
+            Assert.That(g2Out1, Is.EqualTo(g2Expected));
+            Assert.That(g2AffineOut1, Is.EqualTo(g2Expected));
+            Assert.That(g2InfinityOut1, Is.EqualTo(g2InfinityExpected));
+        });
+    }
+
+    [Test]
+    public void SerializeToSpanRejectsShortBuffer()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(() => G1.Generator().Serialize(new byte[95]), Throws.InstanceOf<ArgumentOutOfRangeException>());
+            Assert.That(() => G1Affine.Generator().Serialize(new byte[95]), Throws.InstanceOf<ArgumentOutOfRangeException>());
+            Assert.That(() => G2.Generator().Serialize(new byte[191]), Throws.InstanceOf<ArgumentOutOfRangeException>());
+            Assert.That(() => G2Affine.Generator().Serialize(new byte[191]), Throws.InstanceOf<ArgumentOutOfRangeException>());
+        });
+    }
+
+    [Test]
     public void SerializeRoundtripG1()
     {
         G1 p = G1.Generator().Mult(12345);
