@@ -164,6 +164,18 @@ public class G1Benchmarks
     [Benchmark]
     public byte[] Compress()
         => new G1(_point).Compress();
+
+    [Benchmark]
+    public byte[] Serialize()
+        => new G1(_point).Serialize();
+
+    [Benchmark]
+    public byte SerializeToSpan()
+    {
+        Span<byte> output = stackalloc byte[96];
+        new G1(_point).Serialize(output);
+        return output[0];
+    }
 }
 
 [MemoryDiagnoser]
@@ -223,6 +235,18 @@ public class G2Benchmarks
     [Benchmark]
     public byte[] Compress()
         => new G2(_point).Compress();
+
+    [Benchmark]
+    public byte[] Serialize()
+        => new G2(_point).Serialize();
+
+    [Benchmark]
+    public byte SerializeToSpan()
+    {
+        Span<byte> output = stackalloc byte[192];
+        new G2(_point).Serialize(output);
+        return output[0];
+    }
 }
 
 [MemoryDiagnoser]

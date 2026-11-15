@@ -151,6 +151,11 @@ public static partial class Bls
             blst_p2_affine_serialize(ret, _point);
             return ret;
         }
+        public readonly void Serialize(Span<byte> output)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(output.Length, 2 * P2_COMPRESSED_SZ, nameof(output));
+            blst_p2_affine_serialize(output, _point);
+        }
         public readonly byte[] Compress()
         {
             byte[] ret = new byte[P2_COMPRESSED_SZ];
@@ -378,6 +383,11 @@ public static partial class Bls
             byte[] ret = new byte[2 * P2_COMPRESSED_SZ];
             blst_p2_serialize(ret, _point);
             return ret;
+        }
+        public readonly void Serialize(Span<byte> output)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(output.Length, 2 * P2_COMPRESSED_SZ, nameof(output));
+            blst_p2_serialize(output, _point);
         }
         public readonly byte[] Compress()
         {
